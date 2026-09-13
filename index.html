@@ -1,0 +1,2862 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ОРБИТАЛ // Глубокий Космос</title>
+<style>
+:root {
+  --bg-0: #06080f;
+  --bg-1: #0a0e1a;
+  --line: rgba(120, 180, 220, 0.14);
+  --line-strong: rgba(120, 180, 220, 0.32);
+  --text: #d5e4f0;
+  --text-dim: #6b7d92;
+  --text-faint: #3d4a5c;
+  --cyan: #4ec9e8;
+  --cyan-dim: #2a7f9c;
+  --amber: #ffb454;
+  --red: #e05a5a;
+  --violet: #a06cd5;
+  --green: #5fbf7a;
+  --font-display: 'Orbitron', 'Rajdhani', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  font-family: var(--font-mono); background: var(--bg-0); color: var(--text);
+  overflow: hidden; height: 100vh; width: 100%; position: fixed;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  font-weight: 300; letter-spacing: 0.02em;
+}
+#gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 38px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  background: linear-gradient(180deg, rgba(6,8,15,0.95), rgba(6,8,15,0.6));
+  border-bottom: 1px solid var(--line); backdrop-filter: blur(12px);
+  z-index: 100; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+}
+.topbar-brand { font-family: var(--font-display); font-weight: 500; font-size: 12px;
+  color: var(--text); letter-spacing: 0.35em; display: flex; align-items: center; gap: 10px; }
+.topbar-brand::before { content: ''; width: 6px; height: 6px;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan); transform: rotate(45deg); }
+.topbar-brand small { color: var(--text-faint); font-weight: 300; letter-spacing: 0.2em; font-size: 9px; }
+.topbar-status { display: flex; gap: 24px; color: var(--text-dim); }
+.topbar-status b { color: var(--cyan); font-weight: 500; margin-left: 6px; }
+
+.hud-panel {
+  position: absolute; background: rgba(10, 14, 26, 0.72);
+  border: 1px solid var(--line); backdrop-filter: blur(14px); z-index: 50;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+.panel-head {
+  padding: 8px 12px; font-family: var(--font-display);
+  font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--text-faint); border-bottom: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.panel-head .dot { width: 4px; height: 4px; background: var(--cyan);
+  border-radius: 50%; box-shadow: 0 0 6px var(--cyan); }
+.panel-body { padding: 10px 12px; }
+
+.panel-nav { top: 52px; left: 16px; width: 176px; }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px; }
+.mode-btn {
+  background: rgba(255,255,255,0.02); border: 1px solid var(--line);
+  color: var(--text-dim); padding: 7px 4px; font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.18s ease; font-weight: 400;
+}
+.mode-btn:hover { border-color: var(--line-strong); color: var(--text); }
+.mode-btn.on { background: rgba(78, 201, 232, 0.08);
+  border-color: var(--cyan); color: var(--cyan);
+  box-shadow: inset 0 0 12px rgba(78, 201, 232, 0.12); }
+.mode-btn.full { grid-column: span 2; }
+.mode-btn.ai-on { background: rgba(95, 191, 122, 0.08);
+  border-color: var(--green); color: var(--green); }
+.mode-btn.hyper { background: rgba(160, 108, 213, 0.08);
+  border-color: var(--violet); color: var(--violet); letter-spacing: 0.2em; }
+.mode-btn.hyper:disabled { opacity: 0.4; cursor: not-allowed; }
+.divider { height: 1px; background: var(--line); margin: 10px 0; }
+.stat-row { display: flex; justify-content: space-between;
+  font-size: 10px; padding: 3px 0; color: var(--text-dim); letter-spacing: 0.06em; }
+.stat-row span:last-child { color: var(--text); font-weight: 400; }
+.stat-row span:last-child.accent { color: var(--cyan); }
+.stat-row span:last-child.warn { color: var(--amber); }
+.stat-row span:last-child.bad { color: var(--red); }
+
+.panel-sys { top: 52px; right: 16px; width: 200px; }
+.res-item { margin-bottom: 10px; }
+.res-head { display: flex; justify-content: space-between;
+  font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 4px; }
+.res-head .val { color: var(--text); font-family: var(--font-mono);
+  font-weight: 400; letter-spacing: 0.05em; }
+.res-head .val.warn { color: var(--amber); }
+.res-head .val.bad { color: var(--red); }
+.res-bar { height: 3px; background: rgba(255,255,255,0.05);
+  position: relative; overflow: hidden; }
+.res-fill { position: absolute; top: 0; left: 0; bottom: 0;
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.res-fill.fuel { background: linear-gradient(90deg, #ff8a3d, var(--amber));
+  box-shadow: 0 0 6px rgba(255,180,84,0.4); }
+.res-fill.energy { background: linear-gradient(90deg, #d4a843, #ffd866);
+  box-shadow: 0 0 6px rgba(255,216,102,0.4); }
+.res-fill.water { background: linear-gradient(90deg, #2a7f9c, var(--cyan));
+  box-shadow: 0 0 6px rgba(78,201,232,0.4); }
+.res-fill.temp { background: var(--green); box-shadow: 0 0 6px rgba(95,191,122,0.4); }
+.res-fill.temp.warn { background: var(--amber); }
+.res-fill.temp.bad { background: var(--red); box-shadow: 0 0 8px rgba(224,90,90,0.6); }
+.res-fill.hyper { background: linear-gradient(90deg, var(--violet), #d090ff);
+  box-shadow: 0 0 8px rgba(160,108,213,0.6); }
+.res-fill.hull { background: linear-gradient(90deg, #7a9eb8, #b8d4e8);
+  box-shadow: 0 0 6px rgba(184,212,232,0.4); }
+.res-fill.wall { background: linear-gradient(90deg, var(--red), #ff8080);
+  box-shadow: 0 0 6px rgba(224,90,90,0.6); }
+.res-bar::after { content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent 5px, var(--bg-0) 5px, var(--bg-0) 6px);
+  pointer-events: none; }
+
+.panel-ai {
+  position: fixed; top: 52px; left: 50%; transform: translateX(-50%);
+  width: 300px; z-index: 55; transition: width 0.25s ease, opacity 0.2s;
+}
+.panel-ai.collapsed { width: 190px; }
+.panel-ai.collapsed .panel-body { display: none; }
+.panel-ai.collapsed .ai-stats { display: none; }
+.panel-toggle {
+  background: rgba(255,255,255,0.03); border: 1px solid var(--line);
+  color: var(--text-dim); width: 22px; height: 20px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 12px; line-height: 1;
+  padding: 0; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.panel-toggle:hover { border-color: var(--cyan); color: var(--cyan); }
+.ai-group { margin-bottom: 8px; }
+.ai-group-label {
+  font-size: 8px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--text-faint); margin-bottom: 4px; display: flex;
+  justify-content: space-between;
+}
+.ai-group-label .tag { color: var(--cyan-dim); }
+.ai-row { display: grid; gap: 2px; margin-bottom: 6px; }
+.ai-row.inputs { grid-template-columns: repeat(12, 1fr); }
+.ai-row.hidden { grid-template-columns: repeat(8, 1fr); }
+.ai-row.output { grid-template-columns: repeat(4, 1fr); }
+.ai-neuron {
+  aspect-ratio: 1; background: rgba(78, 201, 232, 0.05);
+  border: 1px solid var(--line); transition: all 0.2s;
+}
+.ai-neuron.on { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.ai-neuron.wall { border-color: rgba(224,90,90,0.4); }
+.ai-neuron.wall.on { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.ai-neuron.out { border-color: rgba(160,108,213,0.4); }
+.ai-neuron.out.on { background: var(--violet); box-shadow: 0 0 8px var(--violet); }
+.ai-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px;
+  font-size: 9px; letter-spacing: 0.08em; color: var(--text-dim);
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ai-stats span:last-child { color: var(--text); text-align: right; }
+
+.minimap-wrap { position: fixed; bottom: 20px; right: 20px;
+  width: 148px; height: 148px; z-index: 50; }
+.minimap-frame { width: 100%; height: 100%; border: 1px solid var(--line-strong);
+  background: rgba(6, 8, 15, 0.85); position: relative;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+#miniMap { display: block; width: 100%; height: 100%; }
+.minimap-label { position: absolute; top: 6px; left: 8px;
+  font-size: 8px; letter-spacing: 0.28em; color: var(--text-faint);
+  text-transform: uppercase; z-index: 2; }
+.minimap-coords { position: absolute; bottom: 6px; right: 8px;
+  font-size: 8px; color: var(--cyan-dim); letter-spacing: 0.1em; z-index: 2; }
+
+.panel-velocity { position: fixed; bottom: 20px; left: 20px; width: 200px; z-index: 50; }
+.vel-readout { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+.vel-value { font-family: var(--font-display); font-size: 28px; font-weight: 500;
+  color: var(--text); letter-spacing: 0.02em; line-height: 1;
+  font-variant-numeric: tabular-nums; }
+.vel-value.hyper { color: var(--violet); text-shadow: 0 0 12px rgba(160,108,213,0.6); }
+.vel-unit { font-size: 9px; color: var(--text-faint);
+  letter-spacing: 0.2em; text-transform: uppercase; }
+.vel-bar-wrap { position: relative; height: 3px;
+  background: rgba(255,255,255,0.05); margin-bottom: 4px; }
+.vel-bar { position: absolute; top: 0; left: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--green), var(--amber) 70%, var(--red));
+  transition: width 0.15s linear; }
+.vel-bar.hyper { background: linear-gradient(90deg, var(--violet), #d090ff); }
+.vel-meta { display: flex; justify-content: space-between; font-size: 8px;
+  letter-spacing: 0.14em; color: var(--text-faint); text-transform: uppercase; }
+.vel-meta b { color: var(--text-dim); font-weight: 400; }
+
+.copilot {
+  position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+  padding: 4px 12px; background: rgba(10, 14, 26, 0.8);
+  border: 1px solid var(--line); backdrop-filter: blur(10px);
+  font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--cyan); z-index: 56;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 100%, 0 100%);
+  font-family: var(--font-display); font-weight: 400;
+}
+.copilot.manual { color: var(--amber); border-color: rgba(255,180,84,0.4); }
+.copilot.wall { color: var(--red); border-color: rgba(224,90,90,0.5);
+  animation: wallBlink 0.6s infinite; }
+@keyframes wallBlink {
+  0%, 100% { box-shadow: 0 0 12px rgba(224,90,90,0.4); }
+  50% { box-shadow: 0 0 20px rgba(224,90,90,0.9); }
+}
+.copilot .pulse { display: inline-block; width: 5px; height: 5px;
+  background: var(--cyan); border-radius: 50%; margin-right: 8px;
+  box-shadow: 0 0 6px var(--cyan); animation: blip 1.5s infinite;
+  vertical-align: middle; }
+.copilot.manual .pulse { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.copilot.wall .pulse { background: var(--red); box-shadow: 0 0 6px var(--red); }
+@keyframes blip { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.controls-mobile { position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%); display: none; gap: 40px;
+  z-index: 60; align-items: flex-end; }
+.controls-mobile .dpad { display: grid;
+  grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 4px; }
+.ctl { border: 1px solid var(--line-strong); background: rgba(10, 14, 26, 0.7);
+  color: var(--text-dim); display: flex; align-items: center; justify-content: center;
+  font-size: 14px; user-select: none; touch-action: none; transition: all 0.1s;
+  font-family: var(--font-mono); backdrop-filter: blur(8px); }
+.ctl:active, .ctl.on { background: rgba(78, 201, 232, 0.15);
+  border-color: var(--cyan); color: var(--cyan); }
+.ctl-empty { visibility: hidden; }
+.ctl-thrust { width: 60px; height: 60px; border-radius: 50%; font-size: 18px; }
+.ctl-hyper { width: 44px; height: 44px; border-color: var(--violet); color: var(--violet);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.ctl-hyper:active { background: rgba(160, 108, 213, 0.2);
+  box-shadow: 0 0 16px rgba(160,108,213,0.5); }
+.controls-mobile .right-cluster { display: flex; flex-direction: column;
+  gap: 8px; align-items: center; }
+
+@media (hover: none) and (pointer: coarse), (max-width: 900px) {
+  .controls-mobile { display: flex; }
+  .panel-velocity { bottom: 130px; width: 160px; }
+  .minimap-wrap { bottom: 130px; width: 110px; height: 110px; }
+  .panel-nav { width: 148px; } .panel-sys { width: 156px; }
+  .panel-ai { width: 240px; }
+}
+@media (max-width: 520px) {
+  .panel-nav { top: 46px; left: 8px; width: 132px; }
+  .panel-sys { top: 46px; right: 8px; width: 140px; }
+  .panel-ai { width: 180px; }
+  .panel-ai.collapsed { width: 160px; }
+  .minimap-wrap { width: 92px; height: 92px; right: 8px; bottom: 118px; }
+  .panel-velocity { left: 8px; bottom: 118px; width: 130px; }
+  .vel-value { font-size: 22px; }
+  .controls-mobile { gap: 20px; bottom: 14px; }
+  .controls-mobile .dpad { grid-template-columns: repeat(3, 38px); grid-template-rows: repeat(3, 38px); }
+  .ctl-thrust { width: 52px; height: 52px; }
+}
+
+.hyper-fx { position: fixed; inset: 0; pointer-events: none; z-index: 40;
+  opacity: 0; transition: opacity 0.3s;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(160,108,213,0.15) 100%); }
+.hyper-fx.on { opacity: 1; }
+.damage-fx { position: fixed; inset: 0; pointer-events: none; z-index: 39;
+  opacity: 0; transition: opacity 0.3s;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(224,90,90,0.35) 100%); }
+.damage-fx.on { opacity: 1; }
+.overheat-fx { position: fixed; inset: 0; pointer-events: none; z-index: 38;
+  opacity: 0; transition: opacity 0.5s;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(255,140,60,0.25) 100%);
+  animation: heatPulse 1.4s infinite; }
+.overheat-fx.on { opacity: 1; }
+@keyframes heatPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.75; } }
+
+.wall-fx {
+  position: fixed; inset: 0; pointer-events: none; z-index: 37;
+  opacity: 0; transition: opacity 0.3s;
+}
+.wall-fx.on { opacity: 1; }
+
+.toast-area { position: fixed; top: 68px; left: 50%;
+  transform: translateX(-50%); display: flex; flex-direction: column;
+  gap: 6px; z-index: 58; pointer-events: none; }
+.toast { padding: 6px 14px; background: rgba(10, 14, 26, 0.9);
+  border: 1px solid var(--amber); color: var(--amber);
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  backdrop-filter: blur(10px); font-family: var(--font-display);
+  animation: toastIn 0.3s ease; }
+.toast.bad { border-color: var(--red); color: var(--red); }
+.toast.info { border-color: var(--cyan); color: var(--cyan); }
+.toast.good { border-color: var(--green); color: var(--green); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); } }
+
+.panel-data { position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%); width: 340px; z-index: 55; display: none; }
+.panel-data.open { display: block; }
+.data-actions { display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4px; margin-top: 8px; }
+.data-btn { background: rgba(255,255,255,0.02);
+  border: 1px solid var(--line); color: var(--text-dim);
+  padding: 6px 8px; font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; transition: all 0.18s; }
+.data-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+.data-btn.danger:hover { border-color: var(--red); color: var(--red); }
+.toggle-data { position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%); padding: 5px 14px;
+  background: rgba(10, 14, 26, 0.85); border: 1px solid var(--line);
+  color: var(--text-faint); font-family: var(--font-display);
+  font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
+  cursor: pointer; z-index: 56;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 100%, 0 100%);
+  transition: all 0.2s; }
+.toggle-data:hover { color: var(--cyan); border-color: var(--cyan); }
+@media (max-width: 900px) {
+  .panel-data { width: 280px; bottom: 96px; }
+  .toggle-data { bottom: 96px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div class="topbar">
+  <div class="topbar-brand">ОРБИТАЛ <small>// НАВИГАТОР ГЛУБОКОГО КОСМОСА</small></div>
+  <div class="topbar-status">
+    <div>ВРЕМЯ<b id="tGameTime">00:00</b></div>
+    <div>СЕКТОР<b id="tSector">A-01</b></div>
+    <div>КОРПУС<b id="tIntegrity">100%</b></div>
+  </div>
+</div>
+
+<div class="copilot" id="copilotHint">
+  <span class="pulse"></span><span id="copilotText">СО-ПИЛОТ // АНАЛИЗ</span>
+</div>
+
+<div class="hud-panel panel-ai" id="panelAI">
+  <div class="panel-head">
+    <span>НЕЙРОСЕТЬ // ОБУЧЕНИЕ</span>
+    <button class="panel-toggle" id="toggleAI" title="Свернуть">−</button>
+  </div>
+  <div class="panel-body" id="aiPanelBody">
+    <div class="ai-group">
+      <div class="ai-group-label"><span>ВХОД // РАДАР + ГРАНИЦЫ</span><span class="tag" id="aiTagIn">24</span></div>
+      <div class="ai-row inputs" id="aiInputs"></div>
+    </div>
+    <div class="ai-group">
+      <div class="ai-group-label"><span>СКРЫТЫЙ СЛОЙ</span><span class="tag" id="aiTagHidden">16</span></div>
+      <div class="ai-row hidden" id="aiHidden"></div>
+    </div>
+    <div class="ai-group">
+      <div class="ai-group-label"><span>РЕШЕНИЕ // ПРИОРИТЕТ</span><span class="tag" id="aiTagOut">4</span></div>
+      <div class="ai-row output" id="aiOutputs"></div>
+      <div class="ai-stats">
+        <span>ЭПОХА</span><span id="aiEpoch">0</span>
+        <span>ПРИМЕРОВ</span><span id="aiSamples">0</span>
+        <span>ПОТЕРИ</span><span id="aiLoss">1.00</span>
+        <span>НАГРАДА</span><span id="aiReward">0.00</span>
+        <span>ТОЧНОСТЬ</span><span id="aiAccuracy">0%</span>
+        <span>БД (МБ)</span><span id="aiDbSize">0.00</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hud-panel panel-nav">
+  <div class="panel-head"><span>НАВИГАЦИЯ / РЕЖИМ</span><span class="dot"></span></div>
+  <div class="panel-body">
+    <div class="mode-grid">
+      <button class="mode-btn full ai-on" id="btnAuto">АВТОПИЛОТ</button>
+      <button class="mode-btn full" id="btnManual">РУЧНОЙ</button>
+    </div>
+    <div class="mode-grid">
+      <button class="mode-btn on" id="btnExplore" data-mode="explore">ИССЛЕД.</button>
+      <button class="mode-btn" id="btnCollect" data-mode="collect">СБОР</button>
+      <button class="mode-btn" id="btnEvade" data-mode="evade">УКЛОН.</button>
+      <button class="mode-btn" id="btnReturn" data-mode="return">ВОЗВРАТ</button>
+    </div>
+    <div class="divider"></div>
+    <button class="mode-btn hyper full" id="btnHyper">▶ ГИПЕРДВИГАТЕЛЬ</button>
+    <div class="divider"></div>
+    <div class="stat-row"><span>РЕСУРСОВ</span><span class="accent" id="sRes">0</span></div>
+    <div class="stat-row"><span>СТОЛКНОВЕНИЙ</span><span id="sCol">0</span></div>
+    <div class="stat-row"><span>МАКС. СКОРОСТЬ</span><span id="sMax">0</span></div>
+    <div class="stat-row"><span>ЭФФЕКТИВНОСТЬ</span><span id="sEff">100%</span></div>
+  </div>
+</div>
+
+<div class="hud-panel panel-sys">
+  <div class="panel-head"><span>СИСТЕМЫ</span><span class="dot"></span></div>
+  <div class="panel-body">
+    <div class="res-item"><div class="res-head"><span>ТОПЛИВО</span><span class="val" id="vFuel">85</span></div>
+      <div class="res-bar"><div class="res-fill fuel" id="bFuel" style="width:85%"></div></div></div>
+    <div class="res-item"><div class="res-head"><span>ЭНЕРГИЯ</span><span class="val" id="vEnergy">75</span></div>
+      <div class="res-bar"><div class="res-fill energy" id="bEnergy" style="width:75%"></div></div></div>
+    <div class="res-item"><div class="res-head"><span>ОХЛАДИТЕЛЬ</span><span class="val" id="vWater">60</span></div>
+      <div class="res-bar"><div class="res-fill water" id="bWater" style="width:60%"></div></div></div>
+    <div class="res-item"><div class="res-head"><span>ТЕМП. ЯДРА</span><span class="val" id="vTemp">20°C</span></div>
+      <div class="res-bar"><div class="res-fill temp" id="bTemp" style="width:22%"></div></div></div>
+    <div class="res-item"><div class="res-head"><span>КОРПУС</span><span class="val" id="vHull">100%</span></div>
+      <div class="res-bar"><div class="res-fill hull" id="bHull" style="width:100%"></div></div></div>
+    <div class="res-item"><div class="res-head"><span>ЗАРЯД ГИПЕР</span><span class="val" id="vHyper">100%</span></div>
+      <div class="res-bar"><div class="res-fill hyper" id="bHyper" style="width:100%"></div></div></div>
+    <div class="res-item"><div class="res-head"><span>ГРАНИЦА ПОЛЯ</span><span class="val" id="vWall">БЕЗОП.</span></div>
+      <div class="res-bar"><div class="res-fill wall" id="bWall" style="width:0%"></div></div></div>
+    <div class="divider"></div>
+    <div class="stat-row"><span>ТЯГА</span><span id="sThrust">0%</span></div>
+    <div class="stat-row"><span>ПЕРЕГРУЗКА</span><span id="sGrav">0%</span></div>
+    <div class="stat-row"><span>АЭРОДИН.</span><span id="sAero">0%</span></div>
+    <div class="stat-row"><span>СКОЛЬЖЕНИЕ</span><span id="sSlip">0%</span></div>
+    <div class="stat-row"><span>ДО СТЕНЫ</span><span id="sWallDist">—</span></div>
+    <div class="stat-row"><span>ЦЕЛЬ</span><span class="accent" id="sTarget">—</span></div>
+    <div class="stat-row"><span>КУРС</span><span id="sBearing">000°</span></div>
+  </div>
+</div>
+
+<div class="panel-velocity">
+  <div class="vel-readout"><span class="vel-value" id="velValue">0</span><span class="vel-unit">у/с</span></div>
+  <div class="vel-bar-wrap"><div class="vel-bar" id="velBar" style="width:0%"></div></div>
+  <div class="vel-meta"><span>СКОР <b id="velMax">0</b></span><span>КУРС <b id="velHeading">000°</b></span></div>
+</div>
+
+<div class="minimap-wrap">
+  <div class="minimap-frame">
+    <span class="minimap-label">РАДАР</span>
+    <canvas id="miniMap" width="300" height="300"></canvas>
+    <span class="minimap-coords" id="miniCoords">X:4000 Y:4000</span>
+  </div>
+</div>
+
+<div class="controls-mobile" id="mobileControls">
+  <div class="dpad">
+    <div class="ctl ctl-empty"></div><div class="ctl" data-key="up">▲</div><div class="ctl ctl-empty"></div>
+    <div class="ctl" data-key="left">◀</div><div class="ctl ctl-empty"></div><div class="ctl" data-key="right">▶</div>
+    <div class="ctl ctl-empty"></div><div class="ctl" data-key="down">▼</div><div class="ctl ctl-empty"></div>
+  </div>
+  <div class="right-cluster">
+    <div class="ctl ctl-thrust" data-key="thrust">▲</div>
+    <div class="ctl ctl-hyper" id="ctlHyper">◆</div>
+  </div>
+</div>
+
+<div class="hyper-fx" id="hyperFx"></div>
+<div class="damage-fx" id="damageFx"></div>
+<div class="overheat-fx" id="overheatFx"></div>
+<div class="wall-fx" id="wallFx"></div>
+<div class="toast-area" id="toastArea"></div>
+
+<button class="toggle-data" id="toggleData">▲ БАЗА ОБУЧЕНИЯ ИИ</button>
+<div class="hud-panel panel-data" id="panelData">
+  <div class="panel-head"><span>БАЗА ОБУЧЕНИЯ // INDEXEDDB</span><span class="dot"></span></div>
+  <div class="panel-body">
+    <div class="stat-row"><span>СОСТОЯНИЕ</span><span class="accent" id="dbStatus">ГОТОВО</span></div>
+    <div class="stat-row"><span>РАЗМЕР</span><span id="dbSize">0.00 МБ</span></div>
+    <div class="stat-row"><span>ЗАПИСЕЙ</span><span id="dbRecords">0</span></div>
+    <div class="stat-row"><span>ПОСЛ. СОХР.</span><span id="dbLastSave">—</span></div>
+    <div class="data-actions">
+      <button class="data-btn" id="btnExport">ЭКСПОРТ БД</button>
+      <button class="data-btn" id="btnImport">ИМПОРТ БД</button>
+      <button class="data-btn" id="btnSaveNow">СОХРАНИТЬ</button>
+      <button class="data-btn danger" id="btnClear">ОЧИСТИТЬ</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ОРБИТАЛ // Глубокий Космос — Навигатор
+   Нейросеть 24 → 16 → 4.
+   Вход включает восприятие границ поля: 4 признака близости к стенам.
+   Автопилот: комбинирует нейросеть, steer-behavior, прогноз траектории
+   и жёсткие правила безопасности у границ.
+   ============================================================ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const miniMapCanvas = document.getElementById('miniMap');
+const miniMapCtx = miniMapCanvas.getContext('2d');
+const hyperFx = document.getElementById('hyperFx');
+const damageFx = document.getElementById('damageFx');
+const overheatFx = document.getElementById('overheatFx');
+const wallFx = document.getElementById('wallFx');
+const toastArea = document.getElementById('toastArea');
+
+const MAP_W = 8000, MAP_H = 8000;
+/* --- Границы поля --------------------------------------------- */
+const HARD_WALL = 40;         // физический барьер (отскок)
+const WALL_CRITICAL = 130;    // критическая близость → принудительный разворот
+const WALL_DANGER = 320;      // зона повышенного риска (штраф, отталкивание)
+const WALL_MARGIN = 550;      // зона предупреждения (обучение, отталкивание)
+const WALL_RESTITUTION = 0.6; // доля сохранённой скорости при отскоке от стены
+const WALL_MIN_BOUNCE = 25;   // минимальный импульс отскока (не даём «прилипнуть»)
+
+let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+let camX = 0, camY = 0, lastT = 0;
+
+/* ============================================================
+   МИНИ-НЕЙРОСЕТЬ 24 → 16 → 4
+   Входы (24):
+     0..4   топливо, энергия, вода, темп, корпус
+     5..8   угроза: близость, sin, cos, сближение
+     9..14  ресурс: близость, one-hot (fuel/energy/water), sin, cos
+     15..16 гравитация: знак, близость
+     17     аэронагрузка
+     18     скольжение (sin)
+     19     обобщённая срочность
+     20     близость левой границы
+     21     близость правой границы
+     22     близость верхней границы
+     23     близость нижней границы
+   ============================================================ */
+class MiniNN {
+  constructor() {
+    this.inSize = 24;
+    this.hidden = 16;
+    this.outSize = 4;
+    this.lr = 0.06;
+    this.weights1 = this._rand(this.inSize, this.hidden);
+    this.bias1 = this._rand(1, this.hidden);
+    this.weights2 = this._rand(this.hidden, this.outSize);
+    this.bias2 = this._rand(1, this.outSize);
+    this.epoch = 0; this.samples = 0; this.loss = 1.0;
+    this.lastReward = 0; this.rewardHistory = [];
+    this.wallPenalties = 0;
+    this.wallEscapes = 0;
+  }
+  _rand(a, b) {
+    const m = [];
+    for (let i = 0; i < a; i++) {
+      const row = [];
+      for (let j = 0; j < b; j++) row.push((Math.random() - 0.5) * 0.8);
+      m.push(row);
+    }
+    return m;
+  }
+  _softmax(arr) {
+    const m = Math.max(...arr);
+    const e = arr.map(v => Math.exp(v - m));
+    const s = e.reduce((a, b) => a + b, 0);
+    return e.map(v => v / s);
+  }
+  forward(input) {
+    const h = new Array(this.hidden).fill(0);
+    for (let i = 0; i < this.hidden; i++) {
+      let sum = this.bias1[0][i];
+      for (let j = 0; j < this.inSize; j++) sum += input[j] * this.weights1[j][i];
+      h[i] = Math.tanh(sum);
+    }
+    const out = new Array(this.outSize).fill(0);
+    for (let i = 0; i < this.outSize; i++) {
+      let sum = this.bias2[0][i];
+      for (let j = 0; j < this.hidden; j++) sum += h[j] * this.weights2[j][i];
+      out[i] = sum;
+    }
+    return { h, out, probs: this._softmax(out) };
+  }
+  train(input, targetIdx, reward) {
+    const fwd = this.forward(input);
+    const probs = fwd.probs;
+    const target = new Array(this.outSize).fill(0);
+    target[targetIdx] = 1;
+    const p = Math.max(1e-6, probs[targetIdx]);
+    this.loss = this.loss * 0.99 + (-Math.log(p)) * 0.01;
+    const gradOut = new Array(this.outSize);
+    for (let i = 0; i < this.outSize; i++) {
+      gradOut[i] = (probs[i] - target[i]) * Math.max(0.05, 1 - reward * 0.5);
+    }
+    const gradH = new Array(this.hidden).fill(0);
+    for (let i = 0; i < this.hidden; i++) {
+      for (let j = 0; j < this.outSize; j++) gradH[i] += gradOut[j] * this.weights2[i][j];
+      gradH[i] *= (1 - fwd.h[i] * fwd.h[i]);
+    }
+    for (let i = 0; i < this.hidden; i++)
+      for (let j = 0; j < this.outSize; j++)
+        this.weights2[i][j] -= this.lr * gradOut[j] * fwd.h[i];
+    for (let j = 0; j < this.outSize; j++) this.bias2[0][j] -= this.lr * gradOut[j];
+    for (let j = 0; j < this.inSize; j++)
+      for (let i = 0; i < this.hidden; i++)
+        this.weights1[j][i] -= this.lr * gradH[i] * input[j];
+    for (let i = 0; i < this.hidden; i++) this.bias1[0][i] -= this.lr * gradH[i];
+    this.samples++;
+    if (this.samples % 20 === 0) this.epoch++;
+    this.lastReward = reward;
+    this.rewardHistory.push(reward);
+    if (this.rewardHistory.length > 100) this.rewardHistory.shift();
+  }
+  accuracy() {
+    if (this.rewardHistory.length === 0) return 0;
+    const avg = this.rewardHistory.reduce((a, b) => a + b, 0) / this.rewardHistory.length;
+    return Math.max(0, Math.min(1, (avg + 1) / 2));
+  }
+  serialize() {
+    return {
+      inSize: this.inSize, hidden: this.hidden, outSize: this.outSize,
+      weights1: this.weights1, bias1: this.bias1,
+      weights2: this.weights2, bias2: this.bias2,
+      epoch: this.epoch, samples: this.samples,
+      loss: this.loss, rewardHistory: this.rewardHistory,
+      wallPenalties: this.wallPenalties, wallEscapes: this.wallEscapes,
+    };
+  }
+  deserialize(d) {
+    if (!d) return false;
+    // Строгая проверка размерности. Если старая сеть (inSize 20) — отбрасываем.
+    if (d.inSize !== this.inSize || d.hidden !== this.hidden || d.outSize !== this.outSize) {
+      console.warn('Несовместимая нейросеть — начинаем обучение заново (inSize ' + d.inSize + ' → ' + this.inSize + ')');
+      return false;
+    }
+    this.weights1 = d.weights1 || this.weights1;
+    this.bias1 = d.bias1 || this.bias1;
+    this.weights2 = d.weights2 || this.weights2;
+    this.bias2 = d.bias2 || this.bias2;
+    this.epoch = d.epoch || 0;
+    this.samples = d.samples || 0;
+    this.loss = d.loss ?? 1.0;
+    this.rewardHistory = d.rewardHistory || [];
+    this.wallPenalties = d.wallPenalties || 0;
+    this.wallEscapes = d.wallEscapes || 0;
+    return true;
+  }
+}
+const brain = new MiniNN();
+
+/* ============================================================
+   IndexedDB
+   ============================================================ */
+const DB_NAME = 'orbital_ai_db';
+const DB_VERSION = 1;
+const STORE = 'training_data';
+const MAX_DB_BYTES = 300 * 1024 * 1024;
+let db = null;
+const dbStatusEl = document.getElementById('dbStatus');
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const store = d.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'key' });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+async function dbSaveSample(input, action, reward, meta) {
+  if (!db) return;
+  const tx = db.transaction([STORE], 'readwrite');
+  tx.objectStore(STORE).add({
+    timestamp: Date.now(), input: Array.from(input),
+    action, reward, meta: meta || {},
+  });
+  return new Promise(res => { tx.oncomplete = res; tx.onerror = res; });
+}
+async function dbCount() {
+  if (!db) return 0;
+  const tx = db.transaction([STORE], 'readonly');
+  const req = tx.objectStore(STORE).count();
+  return new Promise(res => { req.onsuccess = () => res(req.result); req.onerror = () => res(0); });
+}
+async function dbEstimateSize() {
+  if (!navigator.storage || !navigator.storage.estimate) return 0;
+  try { const est = await navigator.storage.estimate(); return est.usage || 0; }
+  catch (e) { return 0; }
+}
+async function dbGetAll() {
+  if (!db) return [];
+  const tx = db.transaction([STORE], 'readonly');
+  const req = tx.objectStore(STORE).getAll();
+  return new Promise(res => { req.onsuccess = () => res(req.result || []); req.onerror = () => res([]); });
+}
+async function dbClear() {
+  if (!db) return;
+  const tx = db.transaction([STORE], 'readwrite');
+  tx.objectStore(STORE).clear();
+  return new Promise(res => { tx.oncomplete = res; tx.onerror = res; });
+}
+async function dbTrimIfNeeded() {
+  const size = await dbEstimateSize();
+  if (size < MAX_DB_BYTES) return;
+  const tx = db.transaction([STORE], 'readwrite');
+  const idx = tx.objectStore(STORE).index('timestamp');
+  let deleted = 0;
+  const target = Math.floor((size - MAX_DB_BYTES * 0.9) / 200);
+  const cReq = idx.openCursor();
+  cReq.onsuccess = e => {
+    const c = e.target.result;
+    if (c && deleted < target) { c.delete(); deleted++; c.continue(); }
+  };
+}
+async function dbSaveMeta(key, value) {
+  if (!db) return;
+  const tx = db.transaction(['meta'], 'readwrite');
+  tx.objectStore('meta').put({ key, value, timestamp: Date.now() });
+  return new Promise(res => { tx.oncomplete = res; tx.onerror = res; });
+}
+async function dbGetMeta(key) {
+  if (!db) return null;
+  const tx = db.transaction(['meta'], 'readonly');
+  const req = tx.objectStore('meta').get(key);
+  return new Promise(res => {
+    req.onsuccess = () => res(req.result ? req.result.value : null);
+    req.onerror = () => res(null);
+  });
+}
+
+/* ============================================================
+   КОРАБЛЬ
+   ============================================================ */
+const ship = {
+  x: MAP_W/2, y: MAP_H/2,
+  vx: 0, vy: 0,
+  angle: 0, angularVel: 0,
+  maxSpeed: 320, hyperSpeed: 720,
+  thrustAccel: 220, reverseAccel: 90,
+  linearDamping: 0.18, angularDamping: 0.85, angularSpeed: 3.0,
+  size: 13,
+  temp: 20, tempMin: -180, tempMax: 120, ambientTemp: -40,
+  inHyper: false, hyperCharge: 100, hyperCooldown: 0,
+  hyperActiveTime: 0, hyperMaxTime: 6.0,
+  fuel: 85, energy: 75, water: 60, hull: 100,
+  autopilot: true, mode: 'explore',
+  aeroLoad: 0, drag: 0, slip: 0,
+  overheat: false, overheating: 0,
+  emergency: null, emergencyTimer: 0,
+  wallHit: null,       // 'left'|'right'|'top'|'bottom'|null — только что коснулись
+  wallContact: null,   // в контакте ли сейчас (по факту)
+  wallProximity: 0,    // 0..1 насколько близко к ближайшей границе
+  nearestWallDist: 0,  // расстояние до ближайшей границы
+  ai: {
+    state: 'idle', target: null, targetType: null,
+    lastDecision: 0,
+    wander: { x: 0, y: 0, t: 0 },
+    threatLevel: 0, stuckTimer: 0,
+    angularCmd: 0, thrustCmd: 0,
+    decisionCooldown: 0,
+    lastInput: null, lastAction: 0,
+    episodeReward: 0, episodeTimer: 0,
+    radar: null,
+    suggestAngle: 0, suggestThrust: 0,
+    suggestAction: 0,
+    urgency: 0,
+    wallThreat: 0,       // 0..1 агрегированная «угроза стены»
+    wallStuckTimer: 0,   // сколько времени проводим «прижатыми» к стене
+    forcedReturn: false, // активен ли принудительный возврат
+    forcedReturnTimer: 0,
+    trajectorySafe: true, // безопасна ли прогнозируемая траектория
+    wallHitsCount: 0,     // сколько раз бились о стены за эпизод
+  },
+  maxAchievedSpeed: 0, bearing: 0, gravLoad: 0,
+};
+
+/* ============================================================
+   МИР
+   ============================================================ */
+const planets = [];
+const obstacles = [];
+const resources = [];
+const comets = [];
+const gasClouds = [];
+let cometTimer = 6;
+const particles = [];
+const hyperParticles = [];
+const starfield = [];
+let resourcesCollected = 0, collisions = 0, gameTime = 0;
+let nextObstacleId = 1;
+const keys = { up:false, down:false, left:false, right:false, thrust:false };
+
+/* ============================================================
+   ИНИЦИАЛИЗАЦИЯ
+   ============================================================ */
+async function init() {
+  resize();
+  buildWorld();
+  buildStarfield();
+  buildAIBrainDisplay();
+  bindUI();
+  bindMobileControls();
+  bindKeyboard();
+
+  const collapsed = localStorage.getItem('orbital_ai_collapsed');
+  if (collapsed === '1' || (window.innerWidth < 900 && collapsed !== '0')) {
+    document.getElementById('panelAI').classList.add('collapsed');
+    document.getElementById('toggleAI').textContent = '+';
+  }
+
+  try {
+    await openDB();
+    setDbStatus('БАЗА ГОТОВА', 'accent');
+    const savedBrain = await dbGetMeta('brain');
+    if (savedBrain) {
+      const ok = brain.deserialize(savedBrain);
+      if (ok) {
+        toast('ИИ ЗАГРУЖЕН: ' + brain.epoch + ' ЭПОХ', 'good');
+      } else {
+        toast('АРХИТЕКТУРА ИИ ОБНОВЛЕНА — ОБУЧЕНИЕ С НУЛЯ', 'info');
+      }
+    }
+    await updateDbUI();
+  } catch (e) {
+    setDbStatus('ОШИБКА БД', 'bad');
+    console.warn('IndexedDB error', e);
+  }
+
+  setInterval(saveProgress, 15000);
+  lastT = performance.now();
+  requestAnimationFrame(loop);
+  setInterval(() => { gameTime++; updateClock(); }, 1000);
+}
+
+function setDbStatus(text, cls = '') { dbStatusEl.textContent = text; dbStatusEl.className = cls; }
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+function buildStarfield() {
+  for (let i = 0; i < 400; i++) {
+    starfield.push({
+      x: Math.random() * MAP_W, y: Math.random() * MAP_H,
+      r: 0.3 + Math.random() * 1.2, b: 0.15 + Math.random() * 0.7,
+      layer: Math.random() < 0.6 ? 0.3 : 1,
+    });
+  }
+}
+
+function buildWorld() {
+  // Планеты: 12, с индивидуальной массой (знак = направление гравитации)
+  for (let i = 0; i < 12; i++) {
+    const isAttract = Math.random() > 0.4;
+    const mass = 800 + Math.random() * 5700;
+    planets.push({
+      // Не размещаем планеты слишком близко к границе, чтобы они не мешали логике стен
+      x: WALL_MARGIN + 200 + Math.random() * (MAP_W - 2 * (WALL_MARGIN + 200)),
+      y: WALL_MARGIN + 200 + Math.random() * (MAP_H - 2 * (WALL_MARGIN + 200)),
+      r: 45 + Math.random() * 110,
+      mass: isAttract ? mass : -mass,
+      attract: isAttract,
+      hue: isAttract ? 195 + Math.random() * 40 : 15 + Math.random() * 25,
+      name: 'П-' + String(i + 1).padStart(2, '0'),
+      ring: Math.random() < 0.3,
+    });
+  }
+  for (let i = 0; i < 45; i++) {
+    obstacles.push({
+      id: nextObstacleId++,
+      x: WALL_MARGIN + 100 + Math.random() * (MAP_W - 2 * (WALL_MARGIN + 100)),
+      y: WALL_MARGIN + 100 + Math.random() * (MAP_H - 2 * (WALL_MARGIN + 100)),
+      r: 12 + Math.random() * 34,
+      vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+      hp: 100, angle: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.02,
+    });
+  }
+  for (let i = 0; i < 50; i++) {
+    const t = Math.floor(Math.random() * 3);
+    resources.push({
+      id: i,
+      x: WALL_MARGIN + 100 + Math.random() * (MAP_W - 2 * (WALL_MARGIN + 100)),
+      y: WALL_MARGIN + 100 + Math.random() * (MAP_H - 2 * (WALL_MARGIN + 100)),
+      r: 8,
+      type: ['energy','fuel','water'][t],
+      color: ['#ffd866','#ffb454','#4ec9e8'][t],
+      pulse: Math.random() * Math.PI * 2, collected: false,
+    });
+  }
+  for (let i = 0; i < 12; i++) {
+    gasClouds.push({
+      x: WALL_MARGIN + 200 + Math.random() * (MAP_W - 2 * (WALL_MARGIN + 200)),
+      y: WALL_MARGIN + 200 + Math.random() * (MAP_H - 2 * (WALL_MARGIN + 200)),
+      r: 200 + Math.random() * 350,
+      density: 0.3 + Math.random() * 0.7,
+      color: ['#4a7a9c', '#6a5a9c', '#9c7a4a'][i % 3],
+      drift: { x: (Math.random() - 0.5) * 6, y: (Math.random() - 0.5) * 6 },
+    });
+  }
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+function bindUI() {
+  document.getElementById('btnAuto').onclick = () => setAutopilot(true);
+  document.getElementById('btnManual').onclick = () => setAutopilot(false);
+  document.querySelectorAll('.mode-btn[data-mode]').forEach(b => {
+    b.onclick = () => setMode(b.dataset.mode);
+  });
+  document.getElementById('btnHyper').onclick = activateHyperdrive;
+  document.getElementById('ctlHyper').onclick = activateHyperdrive;
+
+  document.getElementById('toggleAI').onclick = () => {
+    const p = document.getElementById('panelAI');
+    p.classList.toggle('collapsed');
+    const isCollapsed = p.classList.contains('collapsed');
+    document.getElementById('toggleAI').textContent = isCollapsed ? '+' : '−';
+    localStorage.setItem('orbital_ai_collapsed', isCollapsed ? '1' : '0');
+  };
+
+  document.getElementById('toggleData').onclick = () => {
+    const p = document.getElementById('panelData');
+    p.classList.toggle('open');
+    document.getElementById('toggleData').textContent =
+      p.classList.contains('open') ? '▼ БАЗА ОБУЧЕНИЯ ИИ' : '▲ БАЗА ОБУЧЕНИЯ ИИ';
+  };
+  document.getElementById('btnExport').onclick = exportDB;
+  document.getElementById('btnImport').onclick = () => document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = importDB;
+  document.getElementById('btnSaveNow').onclick = () => saveProgress(true);
+  document.getElementById('btnClear').onclick = clearDB;
+}
+
+function setAutopilot(v) {
+  ship.autopilot = v;
+  document.getElementById('btnAuto').classList.toggle('ai-on', v);
+  document.getElementById('btnManual').classList.toggle('on', !v);
+  updateCopilotHint();
+  toast(v ? 'АВТОПИЛОТ ВКЛЮЧЁН' : 'РУЧНОЕ УПРАВЛЕНИЕ', 'info');
+}
+
+function setMode(m) {
+  ship.mode = m;
+  ship.ai.target = null;
+  ship.ai.state = 'idle';
+  document.querySelectorAll('.mode-btn[data-mode]').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === m);
+  });
+  updateCopilotHint();
+}
+
+const MODE_LABELS = {
+  explore: 'ИССЛЕДОВАНИЕ', collect: 'СБОР РЕСУРСОВ',
+  evade: 'УКЛОНЕНИЕ', return: 'ВОЗВРАТ',
+};
+const ACTION_LABELS = ['ИССЛЕДОВАНИЕ','СБОР','УКЛОНЕНИЕ','ВОЗВРАТ'];
+
+function updateCopilotHint() {
+  const hint = document.getElementById('copilotHint');
+  const text = document.getElementById('copilotText');
+  hint.classList.remove('manual');
+  hint.classList.remove('wall');
+
+  // Приоритет — сообщения о стене
+  if (ship.ai.forcedReturn) {
+    hint.classList.add('wall');
+    text.textContent = 'АВАРИЙНЫЙ РАЗВОРОТ ОТ ГРАНИЦЫ ПОЛЯ';
+    return;
+  }
+  if (ship.wallProximity > 0.5) {
+    hint.classList.add('wall');
+    text.textContent = 'ГРАНИЦА ПОЛЯ // ' + Math.round(ship.nearestWallDist) + 'u ДО СТЕНЫ';
+    return;
+  }
+  if (ship.autopilot) {
+    text.textContent = 'АВТОПИЛОТ // ' + (MODE_LABELS[ship.mode] || '—');
+  } else {
+    hint.classList.add('manual');
+    const suggest = ACTION_LABELS[ship.ai.suggestAction] || '—';
+    text.textContent = 'СО-ПИЛОТ // РЕКОМЕНДУЕТ: ' + suggest;
+  }
+}
+
+function toast(msg, kind = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind; el.textContent = msg;
+  toastArea.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* ============================================================
+   ВВОД
+   ============================================================ */
+function bindMobileControls() {
+  document.querySelectorAll('.ctl[data-key]').forEach(el => {
+    const k = el.dataset.key;
+    const on = e => { e.preventDefault(); keys[k] = true; el.classList.add('on'); };
+    const off = e => { e.preventDefault(); keys[k] = false; el.classList.remove('on'); };
+    el.addEventListener('touchstart', on, { passive: false });
+    el.addEventListener('touchend', off, { passive: false });
+    el.addEventListener('touchcancel', off, { passive: false });
+    el.addEventListener('mousedown', on);
+    el.addEventListener('mouseup', off);
+    el.addEventListener('mouseleave', off);
+  });
+}
+function bindKeyboard() {
+  window.addEventListener('keydown', e => {
+    switch (e.key) {
+      case 'ArrowUp': case 'w': case 'W': keys.up = true; break;
+      case 'ArrowDown': case 's': case 'S': keys.down = true; break;
+      case 'ArrowLeft': case 'a': case 'A': keys.left = true; break;
+      case 'ArrowRight': case 'd': case 'D': keys.right = true; break;
+      case ' ': keys.thrust = true; break;
+      case 'Shift': activateHyperdrive(); break;
+      case 'p': case 'P': setAutopilot(!ship.autopilot); break;
+      case 'h': case 'H': document.getElementById('toggleAI').click(); break;
+    }
+  });
+  window.addEventListener('keyup', e => {
+    switch (e.key) {
+      case 'ArrowUp': case 'w': case 'W': keys.up = false; break;
+      case 'ArrowDown': case 's': case 'S': keys.down = false; break;
+      case 'ArrowLeft': case 'a': case 'A': keys.left = false; break;
+      case 'ArrowRight': case 'd': case 'D': keys.right = false; break;
+      case ' ': keys.thrust = false; break;
+    }
+  });
+}
+
+/* ============================================================
+   ГИПЕР
+   ============================================================ */
+function activateHyperdrive() {
+  if (ship.inHyper) return;
+  if (ship.hyperCharge < 100 || ship.hyperCooldown > 0) { toast('ГИПЕРДВИГАТЕЛЬ НЕ ГОТОВ', 'bad'); return; }
+  if (ship.energy < 15) { toast('НЕДОСТАТОЧНО ЭНЕРГИИ', 'bad'); return; }
+  if (ship.temp > 90) { toast('ПЕРЕГРЕВ — ГИПЕР ЗАБЛОКИРОВАН', 'bad'); return; }
+  if (ship.wallProximity > 0.6) { toast('ГРАНИЦА ПОЛЯ — ГИПЕР ЗАБЛОКИРОВАН', 'bad'); return; }
+
+  // Проверка прогноза: если гипер выбросит нас в стену — не запускаем
+  const projX = ship.x + Math.cos(ship.angle) * 400;
+  const projY = ship.y + Math.sin(ship.angle) * 400;
+  if (projX < WALL_CRITICAL || projX > MAP_W - WALL_CRITICAL ||
+      projY < WALL_CRITICAL || projY > MAP_H - WALL_CRITICAL) {
+    toast('КУРС В ГРАНИЦУ — ГИПЕР ЗАБЛОКИРОВАН', 'bad');
+    return;
+  }
+
+  ship.inHyper = true;
+  ship.hyperCharge = 0; ship.hyperActiveTime = 0; ship.hyperCooldown = 8;
+  hyperFx.classList.add('on');
+  toast('ГИПЕРДВИГАТЕЛЬ АКТИВЕН', 'info');
+  for (let i = 0; i < 60; i++) {
+    hyperParticles.push({
+      x: ship.x, y: ship.y,
+      vx: (Math.random() - 0.5) * 400, vy: (Math.random() - 0.5) * 400,
+      life: 0.6 + Math.random() * 0.8, maxLife: 1.4,
+      size: 1 + Math.random() * 3,
+    });
+  }
+}
+
+/* ============================================================
+   ОБНОВЛЕНИЕ
+   ============================================================ */
+function update(dt) {
+  updateShipPhysics(dt);
+  updateAI(dt);
+  updateComets(dt);
+  updateObstacles(dt);
+  updateResources(dt);
+  updateParticles(dt);
+  updateHyperFx(dt);
+  updateCamera();
+  updateHUD();
+  updateAIBrainDisplay();
+  updateWallFx();
+}
+
+/* ============================================================
+   ФИЗИКА
+   ============================================================ */
+function updateShipPhysics(dt) {
+  // Вращение
+  let rotInput = 0;
+  if (!ship.autopilot) {
+    if (keys.left) rotInput -= 1;
+    if (keys.right) rotInput += 1;
+  } else rotInput = ship.ai.angularCmd || 0;
+  ship.angularVel += rotInput * 8.0 * dt;
+  ship.angularVel *= Math.pow(ship.angularDamping, dt * 60);
+  ship.angularVel = Math.max(-ship.angularSpeed, Math.min(ship.angularSpeed, ship.angularVel));
+  ship.angle += ship.angularVel * dt;
+
+  // Аэродинамика (газовые облака)
+  let aeroDensity = 0;
+  for (const c of gasClouds) {
+    const dx = ship.x - c.x, dy = ship.y - c.y;
+    const d = Math.hypot(dx, dy);
+    if (d < c.r) {
+      const f = 1 - d / c.r;
+      aeroDensity += c.density * f * f;
+    }
+  }
+  aeroDensity = Math.min(1.2, aeroDensity);
+  const speed = Math.hypot(ship.vx, ship.vy);
+  ship.aeroLoad = Math.min(1, aeroDensity * (speed * speed) / (400 * 400));
+  ship.drag = aeroDensity * (speed / 400);
+
+  // Скольжение
+  let slip = 0;
+  if (speed > 5) {
+    const velAngle = Math.atan2(ship.vy, ship.vx);
+    slip = angDiff(velAngle, ship.angle);
+  }
+  ship.slip = slip;
+
+  // Тяга
+  let thrust = 0;
+  if (!ship.autopilot) {
+    if (keys.thrust) thrust = 1;
+    if (keys.up) thrust = Math.max(thrust, 1);
+    if (keys.down) thrust = Math.min(thrust, -0.5);
+  } else thrust = ship.ai.thrustCmd || 0;
+
+  if (ship.temp > 95) thrust *= 0.4;
+  if (ship.temp > 110) thrust = 0;
+  thrust *= (1 - ship.aeroLoad * 0.5);
+
+  const maxV = (ship.inHyper ? ship.hyperSpeed : ship.maxSpeed) * (1 - ship.aeroLoad * 0.4);
+  const accel = thrust > 0 ? ship.thrustAccel : ship.reverseAccel;
+
+  if (thrust !== 0 && ship.fuel > 0) {
+    ship.vx += Math.cos(ship.angle) * accel * thrust * dt;
+    ship.vy += Math.sin(ship.angle) * accel * thrust * dt;
+    ship.fuel = Math.max(0, ship.fuel - Math.abs(thrust) * (ship.inHyper ? 2.5 : 0.45) * dt);
+    ship.temp = Math.min(ship.tempMax, ship.temp + Math.abs(thrust) * 1.8 * dt + ship.aeroLoad * 22 * dt);
+  }
+
+  // Гравитация планет
+  let gravLoad = 0;
+  for (const p of planets) {
+    const dx = p.x - ship.x, dy = p.y - ship.y;
+    const d2 = dx*dx + dy*dy;
+    const d = Math.sqrt(d2) || 1;
+    if (d < 1600) {
+      const f = p.mass / d2;
+      ship.vx += (dx / d) * f * dt;
+      ship.vy += (dy / d) * f * dt;
+      gravLoad += Math.min(1, Math.abs(f) * 4);
+    }
+  }
+  ship.gravLoad = Math.min(1, gravLoad);
+
+  // Трение
+  const baseDamping = ship.inHyper ? 0.05 : ship.linearDamping;
+  const totalDamping = baseDamping + aeroDensity * 0.9;
+  ship.vx -= ship.vx * totalDamping * dt;
+  ship.vy -= ship.vy * totalDamping * dt;
+  if (aeroDensity > 0.05 && speed > 0) {
+    const dragForce = aeroDensity * speed * speed * 0.0008;
+    ship.vx -= (ship.vx / speed) * dragForce * dt;
+    ship.vy -= (ship.vy / speed) * dragForce * dt;
+  }
+
+  // Ограничение скорости
+  let sp = Math.hypot(ship.vx, ship.vy);
+  if (sp > maxV) { ship.vx = (ship.vx / sp) * maxV; ship.vy = (ship.vy / sp) * maxV; sp = maxV; }
+  if (sp > ship.maxAchievedSpeed) ship.maxAchievedSpeed = sp;
+  ship.speed = sp;
+
+  // Движение
+  ship.x += ship.vx * dt;
+  ship.y += ship.vy * dt;
+
+  // ==========================================================
+  //  ГРАНИЦЫ ПОЛЯ — усиленная логика
+  //  1) Запоминаем факт контакта
+  //  2) Отскок с минимальным импульсом
+  //  3) Считаем расстояние до ближайшей границы
+  // ==========================================================
+  let justHit = null;
+
+  if (ship.x < HARD_WALL) {
+    ship.x = HARD_WALL;
+    const newVx = Math.abs(ship.vx) * WALL_RESTITUTION + WALL_MIN_BOUNCE;
+    if (ship.vx < 0) justHit = 'left';
+    ship.vx = newVx;
+  }
+  if (ship.x > MAP_W - HARD_WALL) {
+    ship.x = MAP_W - HARD_WALL;
+    const newVx = -(Math.abs(ship.vx) * WALL_RESTITUTION + WALL_MIN_BOUNCE);
+    if (ship.vx > 0) justHit = 'right';
+    ship.vx = newVx;
+  }
+  if (ship.y < HARD_WALL) {
+    ship.y = HARD_WALL;
+    const newVy = Math.abs(ship.vy) * WALL_RESTITUTION + WALL_MIN_BOUNCE;
+    if (ship.vy < 0) justHit = 'top';
+    ship.vy = newVy;
+  }
+  if (ship.y > MAP_H - HARD_WALL) {
+    ship.y = MAP_H - HARD_WALL;
+    const newVy = -(Math.abs(ship.vy) * WALL_RESTITUTION + WALL_MIN_BOUNCE);
+    if (ship.vy > 0) justHit = 'bottom';
+    ship.vy = newVy;
+  }
+
+  ship.wallHit = justHit;
+
+  // Контакт — если мы у самой стены
+  ship.wallContact = (
+    ship.x <= HARD_WALL + 3 ||
+    ship.x >= MAP_W - HARD_WALL - 3 ||
+    ship.y <= HARD_WALL + 3 ||
+    ship.y >= MAP_H - HARD_WALL - 3
+  ) ? (justHit || 'edge') : null;
+
+  if (justHit) {
+    ship.ai.wallHitsCount++;
+    // Небольшой визуальный эффект
+    spawnBurst(ship.x, ship.y, '#e05a5a', 6, 90);
+  }
+
+  // Близость к границе
+  const distLeft = ship.x;
+  const distRight = MAP_W - ship.x;
+  const distTop = ship.y;
+  const distBottom = MAP_H - ship.y;
+  ship.nearestWallDist = Math.min(distLeft, distRight, distTop, distBottom);
+  ship.wallProximity = Math.max(0, Math.min(1, 1 - ship.nearestWallDist / WALL_MARGIN));
+
+  // Тепловая модель
+  const tempDiff = ship.temp - ship.ambientTemp;
+  ship.temp -= tempDiff * 0.06 * dt;
+  if (ship.water > 0 && ship.temp > 30) {
+    ship.temp -= 12 * dt;
+    ship.water = Math.max(0, ship.water - 0.6 * dt);
+  }
+  if (ship.inHyper) ship.temp += 18 * dt;
+  ship.temp = Math.max(ship.tempMin, Math.min(ship.tempMax, ship.temp));
+
+  ship.overheat = ship.temp > 90;
+  if (ship.temp > 90) {
+    ship.overheating = Math.min(1, (ship.temp - 90) / 30);
+    ship.hull = Math.max(0, ship.hull - ship.overheating * 4 * dt);
+    overheatFx.classList.add('on');
+  } else {
+    ship.overheating = Math.max(0, ship.overheating - dt * 0.5);
+    if (ship.overheating < 0.05) overheatFx.classList.remove('on');
+  }
+
+  updateEmergencySystems(dt);
+
+  // Гипер
+  if (ship.inHyper) {
+    ship.hyperActiveTime += dt;
+    ship.energy = Math.max(0, ship.energy - 3 * dt);
+    // Аварийное отключение при приближении к стене
+    const criticalDist = Math.min(ship.x, MAP_W - ship.x, ship.y, MAP_H - ship.y);
+    if (ship.hyperActiveTime > ship.hyperMaxTime || ship.energy <= 0 || ship.temp > 115 ||
+        criticalDist < WALL_CRITICAL * 2) {
+      ship.inHyper = false; hyperFx.classList.remove('on');
+      toast('ГИПЕРДВИГАТЕЛЬ ОТКЛЮЧЁН', 'info');
+    }
+    if (Math.random() < 0.9) {
+      hyperParticles.push({
+        x: ship.x - Math.cos(ship.angle) * ship.size,
+        y: ship.y - Math.sin(ship.angle) * ship.size,
+        vx: -ship.vx * 0.3 + (Math.random() - 0.5) * 60,
+        vy: -ship.vy * 0.3 + (Math.random() - 0.5) * 60,
+        life: 0.4 + Math.random() * 0.5, maxLife: 0.9,
+        size: 1 + Math.random() * 2.5,
+      });
+    }
+  } else {
+    if (ship.hyperCharge < 100) ship.hyperCharge = Math.min(100, ship.hyperCharge + 8 * dt);
+    if (ship.hyperCooldown > 0) ship.hyperCooldown -= dt;
+    hyperFx.classList.remove('on');
+  }
+
+  let b = Math.atan2(ship.vy, ship.vx) * 180 / Math.PI;
+  if (b < 0) b += 360;
+  ship.bearing = b;
+
+  if (thrust > 0.1 && Math.random() < 0.8) {
+    particles.push({
+      x: ship.x - Math.cos(ship.angle) * ship.size * 0.9,
+      y: ship.y - Math.sin(ship.angle) * ship.size * 0.9,
+      vx: -Math.cos(ship.angle) * 80 + (Math.random() - 0.5) * 30,
+      vy: -Math.sin(ship.angle) * 80 + (Math.random() - 0.5) * 30,
+      life: 0.4, maxLife: 0.4, size: 1 + Math.random() * 2,
+      color: ship.inHyper ? '#a06cd5' : '#ffb454',
+    });
+  }
+}
+
+/* ============================================================
+   ЭКСТРЕННЫЕ СИСТЕМЫ
+   ============================================================ */
+function updateEmergencySystems(dt) {
+  if (ship.emergencyTimer > 0) {
+    ship.emergencyTimer -= dt;
+    if (ship.emergencyTimer <= 0) ship.emergency = null;
+  }
+  const cf = ship.fuel < 12, ce = ship.energy < 12, cw = ship.water < 12;
+  const ch = ship.hull < 30, ct = ship.temp > 100 || ship.temp < -120;
+
+  if (ct && ship.emergency !== 'thermal') {
+    ship.emergency = 'thermal'; ship.emergencyTimer = 5;
+    toast('⚠ ТЕРМОАВАРИЯ — АВАРИЙНОЕ ОХЛАЖДЕНИЕ', 'bad');
+    if (ship.water > 0) { ship.temp -= 40; ship.water = Math.max(0, ship.water - 20); }
+    return;
+  }
+  if (cf && ship.emergency !== 'fuel') {
+    ship.emergency = 'fuel'; ship.emergencyTimer = 8;
+    toast('⚠ ТОПЛИВО НА ИСХОДЕ — ПОИСК ЗАПРАВКИ', 'bad'); return;
+  }
+  if (ce && ship.emergency !== 'energy') {
+    ship.emergency = 'energy'; ship.emergencyTimer = 8;
+    toast('⚠ ЭНЕРГИЯ НА ИСХОДЕ — РЕЖИМ ЭКОНОМИИ', 'bad'); return;
+  }
+  if (ch && ship.emergency !== 'hull') {
+    ship.emergency = 'hull'; ship.emergencyTimer = 10;
+    toast('⚠ КРИТИЧЕСКОЕ СОСТОЯНИЕ КОРПУСА', 'bad'); return;
+  }
+
+  if (ship.emergency === 'thermal') {
+    if (ship.fuel > 5) { ship.fuel -= 3 * dt; ship.temp -= 15 * dt; }
+    if (ship.water > 0) { ship.water -= 2 * dt; ship.temp -= 10 * dt; }
+    if (ship.temp > 110 && ship.energy > 0) { ship.energy -= 5 * dt; ship.temp -= 20 * dt; }
+  }
+  if (ship.emergency === 'fuel') {
+    if (ship.energy > 10) { ship.energy -= 3 * dt; ship.fuel = Math.min(100, ship.fuel + 1.5 * dt); }
+  }
+  if (ship.emergency === 'energy') {
+    if (ship.fuel > 10) { ship.fuel -= 2 * dt; ship.energy = Math.min(100, ship.energy + 2 * dt); }
+  }
+  if (ship.emergency === 'hull') {
+    if (ship.energy > 15 && ship.fuel > 15) {
+      ship.energy -= 2 * dt; ship.fuel -= 1 * dt;
+      ship.hull = Math.min(100, ship.hull + 3 * dt);
+    }
+  }
+}
+
+/* ============================================================
+   РАДАРНЫЙ СНИМОК
+   ============================================================ */
+function angDiff(a, b) {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+function radarSnapshot() {
+  const R_THREAT = 600, R_RES = 1500, R_GRAV = 1600;
+
+  let nThreat = null, nThreatD = Infinity;
+  for (const o of obstacles) {
+    const dx = o.x - ship.x, dy = o.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < R_THREAT + o.r && d < nThreatD) { nThreatD = d; nThreat = { x: o.x, y: o.y, r: o.r, kind: 'asteroid' }; }
+  }
+  for (const c of comets) {
+    const dx = c.x - ship.x, dy = c.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < R_THREAT + c.r && d < nThreatD) { nThreatD = d; nThreat = { x: c.x, y: c.y, r: c.r, kind: 'comet' }; }
+  }
+  let threatIncoming = 0;
+  if (nThreat) {
+    const dx = nThreat.x - ship.x, dy = nThreat.y - ship.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const closing = (dx / d) * (ship.vx) + (dy / d) * (ship.vy);
+    threatIncoming = closing / 300;
+  }
+
+  let nRes = null, nResD = Infinity;
+  for (const r of resources) {
+    if (r.collected) continue;
+    const dx = r.x - ship.x, dy = r.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < R_RES && d < nResD) { nResD = d; nRes = r; }
+  }
+
+  let nGrav = null, nGravStrength = 0;
+  for (const p of planets) {
+    const dx = p.x - ship.x, dy = p.y - ship.y;
+    const d2 = dx*dx + dy*dy;
+    const d = Math.sqrt(d2) || 1;
+    if (d < R_GRAV) {
+      const strength = p.mass / d2;
+      if (Math.abs(strength) > Math.abs(nGravStrength)) {
+        nGravStrength = strength; nGrav = p;
+      }
+    }
+  }
+
+  // --- Границы поля ---
+  const distLeft = ship.x;
+  const distRight = MAP_W - ship.x;
+  const distTop = ship.y;
+  const distBottom = MAP_H - ship.y;
+  const nearestWall = Math.min(distLeft, distRight, distTop, distBottom);
+
+  // Направление скорости к ближайшей границе (эскалация риска)
+  let closingToWall = 0;
+  if (nearestWall === distLeft) closingToWall = -ship.vx / 300;
+  else if (nearestWall === distRight) closingToWall = ship.vx / 300;
+  else if (nearestWall === distTop) closingToWall = -ship.vy / 300;
+  else closingToWall = ship.vy / 300;
+
+  return {
+    nThreat, nThreatD, threatIncoming,
+    nRes, nResD, nGrav, nGravStrength,
+    distLeft, distRight, distTop, distBottom, nearestWall, closingToWall,
+  };
+}
+
+/* ============================================================
+   ВХОД НЕЙРОСЕТИ (24 фичи)
+   ============================================================ */
+function getAIInput() {
+  const r = ship.ai.radar || radarSnapshot();
+
+  const threatProx = r.nThreat ? Math.max(0, 1 - r.nThreatD / 600) : 0;
+  let threatSin = 0, threatCos = 0;
+  if (r.nThreat) {
+    const worldA = Math.atan2(r.nThreat.y - ship.y, r.nThreat.x - ship.x);
+    const rel = angDiff(worldA, ship.angle);
+    threatSin = Math.sin(rel); threatCos = Math.cos(rel);
+  }
+
+  const resProx = r.nRes ? Math.max(0, 1 - r.nResD / 1500) : 0;
+  let resSin = 0, resCos = 0;
+  let isFuel = 0, isEnergy = 0, isWater = 0;
+  if (r.nRes) {
+    const worldA = Math.atan2(r.nRes.y - ship.y, r.nRes.x - ship.x);
+    const rel = angDiff(worldA, ship.angle);
+    resSin = Math.sin(rel); resCos = Math.cos(rel);
+    isFuel = r.nRes.type === 'fuel' ? 1 : 0;
+    isEnergy = r.nRes.type === 'energy' ? 1 : 0;
+    isWater = r.nRes.type === 'water' ? 1 : 0;
+  }
+
+  let gravSign = 0, gravProx = 0;
+  if (r.nGrav) {
+    gravSign = Math.sign(r.nGrav.mass);
+    const dx = r.nGrav.x - ship.x, dy = r.nGrav.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    gravProx = Math.max(0, 1 - d / 1600);
+  }
+
+  const urgency = Math.max(
+    ship.fuel < 30 ? (30 - ship.fuel) / 30 : 0,
+    ship.energy < 30 ? (30 - ship.energy) / 30 : 0,
+    ship.water < 30 ? (30 - ship.water) / 30 : 0,
+    ship.hull < 50 ? (50 - ship.hull) / 50 : 0,
+    ship.temp > 80 ? (ship.temp - 80) / 40 : 0,
+    threatProx
+  );
+  ship.ai.urgency = urgency;
+
+  // --- Границы (фичи 20..23) ---
+  // prox = 0 (далеко) → 1 (у самой границы)
+  const proxLeft = Math.max(0, 1 - r.distLeft / WALL_MARGIN);
+  const proxRight = Math.max(0, 1 - r.distRight / WALL_MARGIN);
+  const proxTop = Math.max(0, 1 - r.distTop / WALL_MARGIN);
+  const proxBottom = Math.max(0, 1 - r.distBottom / WALL_MARGIN);
+
+  return [
+    ship.fuel / 100,
+    ship.energy / 100,
+    ship.water / 100,
+    (ship.temp - ship.tempMin) / (ship.tempMax - ship.tempMin),
+    ship.hull / 100,
+    threatProx,
+    threatSin, threatCos,
+    r.threatIncoming,
+    resProx,
+    isFuel, isEnergy, isWater,
+    resSin, resCos,
+    gravSign, gravProx,
+    ship.aeroLoad,
+    Math.sin(ship.slip),
+    urgency,
+    proxLeft, proxRight, proxTop, proxBottom,
+  ];
+}
+
+/* ============================================================
+   ПРОГНОЗ ТРАЕКТОРИИ
+   Возвращает { pts, outOfBounds, exitIdx, exitSide }
+   ============================================================ */
+function predictTrajectory(steps = 60, dt = 0.08) {
+  const pts = [];
+  let px = ship.x, py = ship.y, pvx = ship.vx, pvy = ship.vy;
+  const thrustCmd = ship.autopilot ? (ship.ai.thrustCmd || 0) : (keys.thrust ? 1 : 0);
+  const ax = Math.cos(ship.angle) * ship.thrustAccel * thrustCmd;
+  const ay = Math.sin(ship.angle) * ship.thrustAccel * thrustCmd;
+  let outOfBounds = false, exitIdx = -1, exitSide = null;
+
+  for (let i = 0; i < steps; i++) {
+    if (i < 12) { pvx += ax * dt; pvy += ay * dt; }
+    for (const p of planets) {
+      const dx = p.x - px, dy = p.y - py;
+      const d2 = dx*dx + dy*dy;
+      const d = Math.sqrt(d2) || 1;
+      if (d < 1600) {
+        const f = p.mass / d2;
+        pvx += (dx/d) * f * dt;
+        pvy += (dy/d) * f * dt;
+      }
+    }
+    pvx -= pvx * ship.linearDamping * dt;
+    pvy -= pvy * ship.linearDamping * dt;
+    px += pvx * dt;
+    py += pvy * dt;
+    pts.push({ x: px, y: py });
+
+    if (!outOfBounds) {
+      if (px < WALL_DANGER) { outOfBounds = true; exitIdx = i; exitSide = 'left'; }
+      else if (px > MAP_W - WALL_DANGER) { outOfBounds = true; exitIdx = i; exitSide = 'right'; }
+      else if (py < WALL_DANGER) { outOfBounds = true; exitIdx = i; exitSide = 'top'; }
+      else if (py > MAP_H - WALL_DANGER) { outOfBounds = true; exitIdx = i; exitSide = 'bottom'; }
+    }
+  }
+  ship.ai.trajectorySafe = !outOfBounds;
+  return { pts, outOfBounds, exitIdx, exitSide };
+}
+
+/* ============================================================
+   ОБНОВЛЕНИЕ ИИ
+   ============================================================ */
+let prevState = { res: 0, col: 0, wallHits: 0, nearestWall: 9999 };
+
+function computeReward(prev) {
+  let r = 0;
+  if (resourcesCollected > prev.res) r += 2.0;
+  if (collisions > prev.col) r -= 3.0;
+  r += 0.1;
+
+  // Ресурсы
+  if (ship.fuel > 30) r += 0.2; else if (ship.fuel < 15) r -= 1.0;
+  if (ship.energy > 30) r += 0.2; else if (ship.energy < 15) r -= 1.0;
+  if (ship.temp > 10 && ship.temp < 70) r += 0.3;
+  if (ship.temp > 90) r -= 1.5;
+  if (ship.hull > 70) r += 0.2; else if (ship.hull < 30) r -= 1.5;
+  if (ship.aeroLoad > 0.6) r -= 0.5;
+
+  // Штраф за удары о стену — очень сильный сигнал сети
+  if (ship.ai.wallHitsCount > (prev.wallHits || 0)) {
+    r -= 8.0 * (ship.ai.wallHitsCount - (prev.wallHits || 0));
+  }
+
+  // Штраф за близость к границе поля — градиентный сигнал
+  // Чем ближе к стене, тем больше штраф (пропорционально квадрату)
+  const nw = ship.nearestWallDist;
+  if (nw < WALL_CRITICAL) {
+    r -= 6.0; // критически плохо
+  } else if (nw < WALL_DANGER) {
+    const t = 1 - (nw - WALL_CRITICAL) / (WALL_DANGER - WALL_CRITICAL);
+    r -= 3.0 * t;
+  } else if (nw < WALL_MARGIN) {
+    const t = 1 - (nw - WALL_DANGER) / (WALL_MARGIN - WALL_DANGER);
+    r -= 0.8 * t;
+  } else {
+    r += 0.3; // поощряем нахождение вдали от стен
+  }
+
+  // Поощрение движения к центру, если близко к стене
+  if (nw < WALL_MARGIN) {
+    const cx = MAP_W / 2, cy = MAP_H / 2;
+    const dx = cx - ship.x, dy = cy - ship.y;
+    const d = Math.hypot(dx, dy) || 1;
+    // Насколько наш вектор скорости направлен от стены (в сторону центра)
+    const velMag = Math.hypot(ship.vx, ship.vy) || 1;
+    const dot = (ship.vx / velMag) * (dx / d) + (ship.vy / velMag) * (dy / d);
+    r += dot * 0.8;
+  }
+
+  return r;
+}
+
+function updateAI(dt) {
+  const ai = ship.ai;
+  ai.lastDecision += dt;
+  ai.episodeTimer += dt;
+
+  ai.radar = radarSnapshot();
+
+  // Обновляем прогноз траектории (раз в кадр дешево)
+  const traj = predictTrajectory(60, 0.08);
+  ai.trajectorySafe = !traj.outOfBounds;
+
+  // --- Обучение раз в 2 сек ---
+  if (ai.episodeTimer > 2.0) {
+    const reward = computeReward(prevState);
+    ai.episodeReward = reward;
+    if (ai.lastInput) {
+      brain.train(ai.lastInput, ai.lastAction, reward);
+      dbSaveSample(ai.lastInput, ai.lastAction, reward, {
+        mode: ship.mode, fuel: ship.fuel, energy: ship.energy, water: ship.water,
+        temp: ship.temp, hull: ship.hull,
+        threatD: ai.radar.nThreatD,
+        resD: ai.radar.nResD,
+        urgency: ai.urgency,
+        nearestWall: ship.nearestWallDist,
+        wallHit: ship.wallHit,
+      }).then(() => dbTrimIfNeeded());
+    }
+    prevState = {
+      res: resourcesCollected, col: collisions,
+      wallHits: ai.wallHitsCount, nearestWall: ship.nearestWallDist,
+    };
+    ai.episodeTimer = 0;
+  }
+
+  // --- Прогон нейросети ---
+  const input = getAIInput();
+  const fwd = brain.forward(input);
+  const probs = fwd.probs;
+  let actionIdx = 0;
+  if (Math.random() < 0.15) actionIdx = Math.floor(Math.random() * 4);
+  else {
+    let mx = -1;
+    for (let i = 0; i < 4; i++) if (probs[i] > mx) { mx = probs[i]; actionIdx = i; }
+  }
+  ai.lastInput = input;
+  ai.lastAction = actionIdx;
+  ai.suggestAction = actionIdx;
+
+  // --- Приоритет действий ---
+  let effectiveMode = ['explore','collect','evade','return'][actionIdx];
+
+  // Экстренные состояния
+  if (ship.emergency) {
+    if (ship.emergency === 'fuel' || ship.emergency === 'energy') effectiveMode = 'collect';
+    else if (ship.emergency === 'hull') effectiveMode = 'return';
+    else if (ship.emergency === 'thermal') effectiveMode = 'evade';
+  }
+
+  // Ручной режим игрока (только в начале)
+  if (ship.mode === 'collect' && resourcesCollected < 3) effectiveMode = 'collect';
+
+  // ============================================================
+  //  ЛОГИКА ГРАНИЦ — сначала оцениваем риск, потом решаем
+  // ============================================================
+  const distLeft = ship.x;
+  const distRight = MAP_W - ship.x;
+  const distTop = ship.y;
+  const distBottom = MAP_H - ship.y;
+  const nearestWall = Math.min(distLeft, distRight, distTop, distBottom);
+
+  // Момент инерции: если летим к стене достаточно быстро и она близко — принудительный разворот
+  const speedMag = Math.hypot(ship.vx, ship.vy);
+  const timeToWall = nearestWall / Math.max(20, speedMag);
+  const isDangerous = nearestWall < WALL_DANGER ||
+                      (nearestWall < WALL_MARGIN && timeToWall < 2.0);
+
+  // КРИТИЧНО — принудительный аварийный разворот
+  if (nearestWall < WALL_CRITICAL || ship.wallContact) {
+    ai.forcedReturn = true;
+    ai.forcedReturnTimer = 1.6; // держим режим 1.6 с после отхода
+    if (!ship.emergency) toast('АВАРИЙНЫЙ РАЗВОРОТ ОТ ГРАНИЦЫ', 'bad');
+  }
+  if (ai.forcedReturnTimer > 0) {
+    ai.forcedReturnTimer -= dt;
+    if (ai.forcedReturnTimer <= 0) {
+      ai.forcedReturn = false;
+    }
+  }
+
+  // Если активен forced return — направление всегда к центру
+  if (ai.forcedReturn) {
+    effectiveMode = 'return';
+  }
+
+  // --- Steering behaviors ---
+  let dirX = 0, dirY = 0, totalW = 0;
+
+  // 1) Угрозы (астероиды, кометы, репульсоры)
+  const threats = findThreats(280);
+  let threatW = 0;
+  for (const t of threats) {
+    const dx = ship.x - t.x, dy = ship.y - t.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const w = t.weight * (t.kind === 'comet' ? 3.2 : 2.4);
+    dirX += (dx / d) * w; dirY += (dy / d) * w;
+    totalW += w; threatW += w;
+  }
+  ai.threatLevel = Math.min(1, threatW);
+
+  // 2) ОТТАЛКИВАНИЕ ОТ ГРАНИЦ — КВАДРАТИЧНОЕ, с очень высоким приоритетом
+  let wallW = 0;
+  const wallForce = 6.0; // базовая сила отталкивания
+
+  if (ship.x < WALL_MARGIN) {
+    const t = 1 - ship.x / WALL_MARGIN;         // 0..1, 1 = у стены
+    const w = t * t * wallForce;                // квадратичный рост
+    dirX += w;                                   // толкаем вправо
+    totalW += w; wallW += w;
+  }
+  if (MAP_W - ship.x < WALL_MARGIN) {
+    const t = 1 - (MAP_W - ship.x) / WALL_MARGIN;
+    const w = t * t * wallForce;
+    dirX -= w;
+    totalW += w; wallW += w;
+  }
+  if (ship.y < WALL_MARGIN) {
+    const t = 1 - ship.y / WALL_MARGIN;
+    const w = t * t * wallForce;
+    dirY += w;
+    totalW += w; wallW += w;
+  }
+  if (MAP_H - ship.y < WALL_MARGIN) {
+    const t = 1 - (MAP_H - ship.y) / WALL_MARGIN;
+    const w = t * t * wallForce;
+    dirY -= w;
+    totalW += w; wallW += w;
+  }
+  ai.wallThreat = Math.min(1, wallW / 3);
+
+  // 3) Учёт прогноза траектории — если она выходит за границы, форсируем разворот
+  if (traj.outOfBounds) {
+    // Насколько срочно: чем ближе точка выхода, тем сильнее
+    const urgencyTraj = 1 - traj.exitIdx / 60;
+    const cx = MAP_W / 2, cy = MAP_H / 2;
+    const toCX = cx - ship.x, toCY = cy - ship.y;
+    const toCLen = Math.hypot(toCX, toCY) || 1;
+    const w = (2.5 + urgencyTraj * 5.0);
+    dirX += (toCX / toCLen) * w;
+    dirY += (toCY / toCLen) * w;
+    totalW += w;
+  }
+
+  // 4) Цель в зависимости от режима
+  if (effectiveMode === 'collect') {
+    let target = findNeededResource();
+    if (!target && ship.mode === 'collect') target = findNearestResource();
+    // Не идём за ресурсом у самой границы, пока не отойдём
+    if (target && nearestWall < WALL_DANGER && ai.forcedReturn) {
+      target = null;
+    }
+    if (target) {
+      const dx = target.res.x - ship.x, dy = target.res.y - ship.y;
+      const d = Math.hypot(dx, dy) || 1;
+      dirX += (dx / d) * 1.8; dirY += (dy / d) * 1.8; totalW += 1.8;
+      ai.target = { x: target.res.x, y: target.res.y, type: target.res.type };
+    } else if (!ai.forcedReturn) {
+      effectiveMode = 'explore';
+    }
+  }
+  else if (effectiveMode === 'return') {
+    const cx = MAP_W / 2, cy = MAP_H / 2;
+    const dx = cx - ship.x, dy = cy - ship.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const w = ai.forcedReturn ? 3.5 : 1.4;
+    dirX += (dx / d) * w; dirY += (dy / d) * w; totalW += w;
+    ai.target = { x: cx, y: cy, type: 'home' };
+  }
+  else if (effectiveMode === 'evade') {
+    ai.target = null;
+    // Уклонение от угрозы — но если близко к стене, добавляем отталкивание (уже добавлено выше)
+  }
+  else { // explore
+    ai.wander.t -= dt;
+    if (ai.wander.t <= 0) {
+      ai.wander.t = 2 + Math.random() * 3;
+      // Смещаем wander к центру, чтобы не тянуло в стены
+      ai.wander.x = (Math.random() - 0.5) * 2;
+      ai.wander.y = (Math.random() - 0.5) * 2;
+    }
+    const w = 0.5;
+    dirX += ai.wander.x * w; dirY += ai.wander.y * w; totalW += w;
+    ai.target = null;
+  }
+
+  // 5) Гравитационные колодцы — отталкивание от attract-планет
+  for (const p of planets) {
+    const dx = p.x - ship.x, dy = p.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < p.r * 4 && p.attract) {
+      const w = ((p.r * 4 - d) / (p.r * 4)) * 2.0;
+      dirX -= (dx / d) * w; dirY -= (dy / d) * w; totalW += w;
+    }
+    if (d < p.r * 3 && !p.attract) {
+      const w = ((p.r * 3 - d) / (p.r * 3)) * 1.2;
+      dirX -= (dx / d) * w; dirY -= (dy / d) * w; totalW += w;
+    }
+  }
+
+  // 6) Обход газовых облаков
+  for (const c of gasClouds) {
+    const dx = ship.x - c.x, dy = ship.y - c.y;
+    const d = Math.hypot(dx, dy);
+    if (d < c.r * 0.7) {
+      const w = ((c.r * 0.7 - d) / (c.r * 0.7)) * 1.0;
+      dirX += (dx / d) * w; dirY += (dy / d) * w; totalW += w;
+    }
+  }
+
+  if (totalW < 0.01) { dirX = 1; dirY = 0; }
+  const desiredAngle = Math.atan2(dirY, dirX);
+  const diff = angDiff(desiredAngle, ship.angle);
+
+  let angularCmd = Math.max(-1, Math.min(1, diff * 2.2));
+  if (Math.abs(diff) < 0.3 && ai.threatLevel > 0.6) angularCmd *= 0.5;
+
+  const alignment = Math.cos(diff);
+  let thrustCmd = 0;
+  if (alignment > 0.5) {
+    thrustCmd = alignment;
+    if (ai.threatLevel > 0.7) thrustCmd *= 0.6;
+  } else thrustCmd = 0.15;
+
+  if (ship.overheat) thrustCmd *= 0.3;
+  if (ship.fuel < 10) thrustCmd *= 0.4;
+  if (ship.hull < 20) thrustCmd *= 0.5;
+  if (ship.aeroLoad > 0.7) thrustCmd *= 0.5;
+
+  // Ограничение тяги в критических зонах
+  if (ai.forcedReturn) {
+    // Медленный, но уверенный разворот
+    thrustCmd = Math.min(thrustCmd, 0.55);
+    // Усиленный поворот
+    angularCmd = Math.sign(diff || 1) * Math.min(1, Math.abs(diff) * 2.8);
+  }
+  if (nearestWall < WALL_CRITICAL) {
+    // Не даём толкать в стену
+    thrustCmd = Math.min(thrustCmd, 0.3);
+  }
+
+  ai.thrustCmd = Math.max(-0.4, Math.min(1, thrustCmd));
+
+  // ============================================================
+  //  АНТИСТАК: если прижаты к стене и медленно движемся — форсим разворот
+  // ============================================================
+  if (ship.wallContact && speedMag < 40) {
+    ai.wallStuckTimer += dt;
+    if (ai.wallStuckTimer > 1.0) {
+      // Определяем, к какой стене прижаты, и разворачиваемся в противоположную сторону
+      const cx = MAP_W / 2, cy = MAP_H / 2;
+      const targetAngle = Math.atan2(cy - ship.y, cx - ship.x);
+      const tDiff = angDiff(targetAngle, ship.angle);
+      ai.angularCmd = Math.sign(tDiff || 1) * 1.0;
+      // Помогаем кораблю развернуться быстрее через угловое ускорение
+      ship.angularVel += Math.sign(tDiff || 1) * 5.0 * dt;
+      ai.thrustCmd = 0.2;
+      if (ai.wallStuckTimer > 2.5) {
+        // Совсем застряли — резкий импульс от стены
+        const impulseAngle = targetAngle;
+        ship.vx += Math.cos(impulseAngle) * 80;
+        ship.vy += Math.sin(impulseAngle) * 80;
+        toast('АВАРИЙНЫЙ ИМПУЛЬС ОТ ГРАНИЦЫ', 'bad');
+        ai.wallStuckTimer = 0;
+      }
+    }
+  } else {
+    ai.wallStuckTimer = Math.max(0, ai.wallStuckTimer - dt * 0.5);
+  }
+
+  // Anti-stuck (общий)
+  if (ship.speed < 15 && ai.thrustCmd > 0.3 && !ship.wallContact) {
+    ai.stuckTimer += dt;
+    if (ai.stuckTimer > 1.5) {
+      ai.angularCmd = (Math.random() < 0.5 ? -1 : 1) * 0.8;
+      ai.thrustCmd = 0.6;
+      if (ai.stuckTimer > 3) ai.stuckTimer = 0;
+    }
+  } else ai.stuckTimer = 0;
+
+  // Ручной режим — сохраняем рекомендацию, но не управляем
+  if (!ship.autopilot) {
+    ai.suggestAngle = desiredAngle;
+    ai.suggestThrust = ai.thrustCmd;
+    ai.state = effectiveMode;
+    ai.angularCmd = 0;
+    ai.thrustCmd = 0;
+  } else {
+    ai.angularCmd = angularCmd;
+    ai.state = effectiveMode;
+  }
+}
+
+function findThreats(radius) {
+  const th = [];
+  for (const o of obstacles) {
+    const dx = o.x - ship.x, dy = o.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < radius + o.r) th.push({ x: o.x, y: o.y, r: o.r, d, kind: 'asteroid', weight: (radius - d) / radius });
+  }
+  for (const c of comets) {
+    const dx = c.x - ship.x, dy = c.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < radius + c.r) th.push({ x: c.x, y: c.y, r: c.r, d, kind: 'comet', weight: (radius - d) / radius * 1.2 });
+  }
+  for (const p of planets) {
+    if (p.attract) continue;
+    const dx = p.x - ship.x, dy = p.y - ship.y;
+    const d = Math.hypot(dx, dy);
+    if (d < radius + p.r) th.push({ x: p.x, y: p.y, r: p.r, d, kind: 'repulsor', weight: (radius - d) / radius });
+  }
+  return th;
+}
+function findNearestResource() {
+  let best = null, bestD = Infinity;
+  for (const r of resources) {
+    if (r.collected) continue;
+    const d = Math.hypot(r.x - ship.x, r.y - ship.y);
+    if (d < bestD) { bestD = d; best = r; }
+  }
+  return best ? { res: best, dist: bestD } : null;
+}
+function findNeededResource() {
+  const need = [];
+  if (ship.fuel < 40) need.push('fuel');
+  if (ship.energy < 40) need.push('energy');
+  if (ship.water < 40) need.push('water');
+  if (need.length === 0) return null;
+  let best = null, bestD = Infinity;
+  for (const r of resources) {
+    if (r.collected || !need.includes(r.type)) continue;
+    const d = Math.hypot(r.x - ship.x, r.y - ship.y);
+    if (d < bestD) { bestD = d; best = r; }
+  }
+  return best ? { res: best, dist: bestD } : null;
+}
+
+/* ============================================================
+   КОМЕТЫ / ПРЕПЯТСТВИЯ / РЕСУРСЫ / ЧАСТИЦЫ
+   ============================================================ */
+function updateComets(dt) {
+  cometTimer -= dt;
+  if (cometTimer <= 0 && comets.length < 6) {
+    cometTimer = 8 + Math.random() * 8;
+    const side = Math.floor(Math.random() * 4);
+    let x, y, vx, vy; const s = 60;
+    switch (side) {
+      case 0: x = -s; y = Math.random() * MAP_H; vx = 90; vy = (Math.random() - 0.5) * 60; break;
+      case 1: x = MAP_W + s; y = Math.random() * MAP_H; vx = -90; vy = (Math.random() - 0.5) * 60; break;
+      case 2: x = Math.random() * MAP_W; y = -s; vx = (Math.random() - 0.5) * 60; vy = 90; break;
+      case 3: x = Math.random() * MAP_W; y = MAP_H + s; vx = (Math.random() - 0.5) * 60; vy = -90; break;
+    }
+    comets.push({ x, y, vx, vy, r: 10 + Math.random() * 16, tail: [], life: 30 });
+  }
+  for (let i = comets.length - 1; i >= 0; i--) {
+    const c = comets[i];
+    c.x += c.vx * dt; c.y += c.vy * dt;
+    c.tail.unshift({ x: c.x, y: c.y });
+    if (c.tail.length > 18) c.tail.pop();
+    c.life -= dt;
+    if (c.life <= 0 || c.x < -200 || c.x > MAP_W + 200 || c.y < -200 || c.y > MAP_H + 200) comets.splice(i, 1);
+  }
+}
+function updateObstacles(dt) {
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    o.x += o.vx * dt; o.y += o.vy * dt; o.angle += o.spin;
+    if (o.x < -100) o.x = MAP_W + 100;
+    if (o.x > MAP_W + 100) o.x = -100;
+    if (o.y < -100) o.y = MAP_H + 100;
+    if (o.y > MAP_H + 100) o.y = -100;
+    const dx = ship.x - o.x, dy = ship.y - o.y;
+    const d = Math.hypot(dx, dy);
+    if (d < ship.size + o.r) {
+      const nx = dx / (d || 1), ny = dy / (d || 1);
+      const overlap = (ship.size + o.r) - d;
+      ship.x += nx * overlap; ship.y += ny * overlap;
+      const vn = ship.vx * nx + ship.vy * ny;
+      ship.vx -= 1.5 * vn * nx; ship.vy -= 1.5 * vn * ny;
+      const impact = Math.min(1, Math.abs(vn) / 300);
+      if (impact > 0.15) {
+        collisions++;
+        ship.hull = Math.max(0, ship.hull - impact * 18);
+        ship.temp = Math.min(ship.tempMax, ship.temp + impact * 12);
+        ship.fuel = Math.max(0, ship.fuel - impact * 5);
+        spawnBurst(ship.x, ship.y, '#e05a5a', 12, 200);
+        damageFx.classList.add('on');
+        setTimeout(() => damageFx.classList.remove('on'), 300);
+      }
+      o.vx -= nx * impact * 60; o.vy -= ny * impact * 60;
+    }
+  }
+}
+function updateResources(dt) {
+  for (let i = resources.length - 1; i >= 0; i--) {
+    const r = resources[i];
+    r.pulse += dt * 3;
+    if (r.collected) continue;
+    const d = Math.hypot(ship.x - r.x, ship.y - r.y);
+    if (d < ship.size + r.r + 6) {
+      r.collected = true; resourcesCollected++;
+      if (r.type === 'fuel') ship.fuel = Math.min(100, ship.fuel + 20);
+      if (r.type === 'energy') ship.energy = Math.min(100, ship.energy + 20);
+      if (r.type === 'water') ship.water = Math.min(100, ship.water + 20);
+      spawnBurst(r.x, r.y, r.color, 14, 160);
+      toast('+ ' + (r.type === 'fuel' ? 'ТОПЛИВО' : r.type === 'energy' ? 'ЭНЕРГИЯ' : 'ОХЛАДИТЕЛЬ'), 'good');
+    }
+  }
+}
+function spawnBurst(x, y, color, count, speed) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = speed * (0.4 + Math.random() * 0.6);
+    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+      life: 0.6 + Math.random() * 0.5, maxLife: 1.1,
+      size: 1 + Math.random() * 2, color });
+  }
+}
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.94; p.vy *= 0.94; p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function updateHyperFx(dt) {
+  for (let i = hyperParticles.length - 1; i >= 0; i--) {
+    const p = hyperParticles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vx *= 0.9; p.vy *= 0.9; p.life -= dt;
+    if (p.life <= 0) hyperParticles.splice(i, 1);
+  }
+}
+function updateCamera() {
+  const tx = ship.x - W / 2, ty = ship.y - H / 2;
+  camX += (tx - camX) * 0.12; camY += (ty - camY) * 0.12;
+  camX = Math.max(-100, Math.min(MAP_W - W + 100, camX));
+  camY = Math.max(-100, Math.min(MAP_H - H + 100, camY));
+}
+
+/* ============================================================
+   РЕНДЕР
+   ============================================================ */
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createRadialGradient(W/2, H/2, 100, W/2, H/2, Math.max(W, H));
+  bg.addColorStop(0, '#0a1420'); bg.addColorStop(1, '#03060c');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  for (const s of starfield) {
+    const sx = (s.x - camX * s.layer) % MAP_W;
+    const sy = (s.y - camY * s.layer) % MAP_H;
+    const px = ((sx % W) + W) % W;
+    const py = ((sy % H) + H) % H;
+    ctx.globalAlpha = s.b * (0.4 + s.layer * 0.6);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(px, py, s.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  renderGrid();
+  renderWalls();
+  renderGravityFields();
+
+  for (const c of gasClouds) renderGasCloud(c);
+  for (const p of planets) renderPlanet(p);
+  for (const r of resources) if (!r.collected) renderResource(r);
+  for (const o of obstacles) renderObstacle(o);
+  for (const c of comets) renderComet(c);
+  for (const p of particles) renderParticle(p);
+  for (const p of hyperParticles) renderParticle(p, true);
+
+  renderTrajectory();
+
+  if (!ship.autopilot) renderSuggestArrow();
+
+  if (ship.ai.target) renderTargetMarker(ship.ai.target);
+
+  renderThreatLine();
+
+  renderShip();
+
+  ctx.restore();
+
+  const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.4, W/2, H/2, Math.max(W,H)*0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+
+  renderMiniMap();
+}
+
+function renderGrid() {
+  const step = 400;
+  ctx.strokeStyle = 'rgba(120, 180, 220, 0.04)';
+  ctx.lineWidth = 1;
+  const x0 = Math.floor(camX / step) * step, y0 = Math.floor(camY / step) * step;
+  const x1 = camX + W, y1 = camY + H;
+  ctx.beginPath();
+  for (let x = x0; x < x1; x += step) { ctx.moveTo(x, camY); ctx.lineTo(x, y1); }
+  for (let y = y0; y < y1; y += step) { ctx.moveTo(camX, y); ctx.lineTo(x1, y); }
+  ctx.stroke();
+}
+
+/* ============================================================
+   РЕНДЕР ГРАНИЦ ПОЛЯ
+   Слои:
+   - внешний красный барьер (HARD_WALL)
+   - зона критической опасности (WALL_CRITICAL)
+   - зона повышенного риска (WALL_DANGER)
+   - зона предупреждения (WALL_MARGIN)
+   ============================================================ */
+function renderWalls() {
+  // Красный физический барьер
+  ctx.strokeStyle = 'rgba(224, 90, 90, 0.85)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(HARD_WALL, HARD_WALL, MAP_W - 2 * HARD_WALL, MAP_H - 2 * HARD_WALL);
+
+  // Зоны опасности — рисуем только если область видимости рядом с границей
+  // (иначе огромные прямоугольники тяжело рисовать)
+  const viewX1 = camX, viewY1 = camY;
+  const viewX2 = camX + W, viewY2 = camY + H;
+
+  // WALL_MARGIN — внешний предупредительный слой
+  ctx.strokeStyle = 'rgba(78, 201, 232, 0.10)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 12]);
+  ctx.strokeRect(WALL_MARGIN, WALL_MARGIN, MAP_W - 2 * WALL_MARGIN, MAP_H - 2 * WALL_MARGIN);
+
+  // WALL_DANGER — средний слой
+  ctx.strokeStyle = 'rgba(255, 180, 84, 0.22)';
+  ctx.setLineDash([4, 8]);
+  ctx.strokeRect(WALL_DANGER, WALL_DANGER, MAP_W - 2 * WALL_DANGER, MAP_H - 2 * WALL_DANGER);
+
+  // WALL_CRITICAL — внутренний слой (красный)
+  ctx.strokeStyle = 'rgba(224, 90, 90, 0.5)';
+  ctx.setLineDash([2, 4]);
+  ctx.strokeRect(WALL_CRITICAL, WALL_CRITICAL, MAP_W - 2 * WALL_CRITICAL, MAP_H - 2 * WALL_CRITICAL);
+
+  ctx.setLineDash([]);
+
+  // Уголки-маркеры на границах для визуальной опоры
+  const cornerSize = 30;
+  ctx.strokeStyle = 'rgba(224, 90, 90, 0.9)';
+  ctx.lineWidth = 2;
+  // Левый верх
+  ctx.beginPath();
+  ctx.moveTo(HARD_WALL, HARD_WALL + cornerSize);
+  ctx.lineTo(HARD_WALL, HARD_WALL);
+  ctx.lineTo(HARD_WALL + cornerSize, HARD_WALL);
+  ctx.stroke();
+  // Правый верх
+  ctx.beginPath();
+  ctx.moveTo(MAP_W - HARD_WALL - cornerSize, HARD_WALL);
+  ctx.lineTo(MAP_W - HARD_WALL, HARD_WALL);
+  ctx.lineTo(MAP_W - HARD_WALL, HARD_WALL + cornerSize);
+  ctx.stroke();
+  // Левый низ
+  ctx.beginPath();
+  ctx.moveTo(HARD_WALL, MAP_H - HARD_WALL - cornerSize);
+  ctx.lineTo(HARD_WALL, MAP_H - HARD_WALL);
+  ctx.lineTo(HARD_WALL + cornerSize, MAP_H - HARD_WALL);
+  ctx.stroke();
+  // Правый низ
+  ctx.beginPath();
+  ctx.moveTo(MAP_W - HARD_WALL - cornerSize, MAP_H - HARD_WALL);
+  ctx.lineTo(MAP_W - HARD_WALL, MAP_H - HARD_WALL);
+  ctx.lineTo(MAP_W - HARD_WALL, MAP_H - HARD_WALL - cornerSize);
+  ctx.stroke();
+}
+
+function renderGravityFields() {
+  for (const p of planets) {
+    const sx = p.x - camX, sy = p.y - camY;
+    if (sx < -500 || sx > W + 500 || sy < -500 || sy > H + 500) continue;
+
+    const maxR = 1600;
+    const rings = 4;
+    for (let i = 1; i <= rings; i++) {
+      const t = i / rings;
+      const r = p.r + (maxR - p.r) * t;
+      const alpha = (1 - t) * 0.12;
+      ctx.strokeStyle = p.attract
+        ? `rgba(78, 201, 232, ${alpha})`
+        : `rgba(255, 180, 84, ${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 8]);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+}
+
+function renderGasCloud(c) {
+  const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+  const hex = c.color;
+  g.addColorStop(0, hexToRgba(hex, 0.18 * c.density));
+  g.addColorStop(0.6, hexToRgba(hex, 0.08 * c.density));
+  g.addColorStop(1, hexToRgba(hex, 0));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill();
+}
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function renderPlanet(p) {
+  const glowR = p.r * (p.attract ? 1.9 : 1.5);
+  const g = ctx.createRadialGradient(p.x, p.y, p.r * 0.5, p.x, p.y, glowR);
+  const hue = p.hue;
+  g.addColorStop(0, `hsla(${hue}, 70%, 55%, 0.35)`);
+  g.addColorStop(1, `hsla(${hue}, 70%, 55%, 0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, p.y, glowR, 0, Math.PI * 2); ctx.fill();
+
+  const bg = ctx.createRadialGradient(
+    p.x - p.r * 0.35, p.y - p.r * 0.35, p.r * 0.15,
+    p.x, p.y, p.r
+  );
+  bg.addColorStop(0, `hsl(${hue}, 55%, 42%)`);
+  bg.addColorStop(1, `hsl(${hue}, 65%, 12%)`);
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+
+  if (p.ring) {
+    ctx.save();
+    ctx.translate(p.x, p.y); ctx.rotate(0.4);
+    ctx.strokeStyle = `hsla(${hue}, 60%, 65%, 0.35)`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 0, p.r * 1.6, p.r * 0.35, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  const sign = p.mass > 0 ? '+' : '−';
+  const absM = Math.abs(Math.round(p.mass));
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = p.attract ? 'rgba(78, 201, 232, 0.85)' : 'rgba(255, 180, 84, 0.85)';
+  ctx.fillText(p.name, p.x, p.y + p.r + 14);
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.fillStyle = p.attract ? 'rgba(78, 201, 232, 0.55)' : 'rgba(255, 180, 84, 0.55)';
+  ctx.fillText((p.attract ? '▲ ' : '▼ ') + sign + absM, p.x, p.y + p.r + 26);
+}
+
+function renderObstacle(o) {
+  ctx.save();
+  ctx.translate(o.x, o.y); ctx.rotate(o.angle);
+  ctx.fillStyle = '#2a1a1a';
+  ctx.strokeStyle = 'rgba(200, 100, 100, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const sides = 6;
+  for (let i = 0; i < sides; i++) {
+    const a = (i / sides) * Math.PI * 2;
+    const r = o.r * (0.85 + (i % 2) * 0.15);
+    const x = Math.cos(a) * r, y = Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function renderResource(r) {
+  const pulse = 1 + Math.sin(r.pulse) * 0.15;
+  const g = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, r.r * 4 * pulse);
+  g.addColorStop(0, r.color + 'aa'); g.addColorStop(1, r.color + '00');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(r.x, r.y, r.r * 4 * pulse, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = r.color;
+  ctx.beginPath(); ctx.arc(r.x, r.y, r.r * pulse, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = r.color; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(r.x, r.y, r.r * 2.4 * pulse, 0, Math.PI * 2); ctx.stroke();
+}
+
+function renderComet(c) {
+  for (let i = 0; i < c.tail.length; i++) {
+    const t = c.tail[i];
+    const a = (1 - i / c.tail.length) * 0.55;
+    ctx.fillStyle = `rgba(160, 200, 255, ${a})`;
+    ctx.beginPath(); ctx.arc(t.x, t.y, c.r * (1 - i / c.tail.length) * 0.7, 0, Math.PI * 2); ctx.fill();
+  }
+  const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r * 2);
+  g.addColorStop(0, 'rgba(200, 230, 255, 0.9)');
+  g.addColorStop(1, 'rgba(120, 180, 255, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(c.x, c.y, c.r * 2, 0, Math.PI * 2); ctx.fill();
+}
+
+function renderParticle(p, isHyper) {
+  const a = Math.max(0, p.life / (p.maxLife || 1));
+  ctx.globalAlpha = a;
+  ctx.fillStyle = p.color || (isHyper ? '#a06cd5' : '#ffb454');
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.5 + a * 0.5), 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function renderTrajectory() {
+  const traj = predictTrajectory(50, 0.09);
+  const pts = traj.pts;
+  if (pts.length === 0) return;
+
+  // Цвет прогноза меняется в зависимости от безопасности
+  const safe = !traj.outOfBounds;
+  const baseAlpha = ship.autopilot ? (safe ? 0.22 : 0.5) : (safe ? 0.45 : 0.7);
+  const color = safe ? '78, 201, 232' : '224, 90, 90';
+
+  ctx.strokeStyle = `rgba(${color}, ${baseAlpha})`;
+  ctx.lineWidth = safe ? 1.2 : 1.8;
+  ctx.setLineDash([2, 6]);
+  ctx.beginPath();
+  ctx.moveTo(ship.x, ship.y);
+  for (const pt of pts) ctx.lineTo(pt.x, pt.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  for (let i = 9; i < pts.length; i += 10) {
+    ctx.fillStyle = `rgba(${color}, ${baseAlpha * 1.5})`;
+    ctx.beginPath(); ctx.arc(pts[i].x, pts[i].y, 1.8, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Если прогноз выходит за границы — показываем точку выхода
+  if (traj.outOfBounds && traj.exitIdx >= 0) {
+    const exit = pts[traj.exitIdx];
+    ctx.strokeStyle = 'rgba(224, 90, 90, 0.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(exit.x, exit.y, 12, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(exit.x - 18, exit.y); ctx.lineTo(exit.x - 6, exit.y);
+    ctx.moveTo(exit.x + 6, exit.y); ctx.lineTo(exit.x + 18, exit.y);
+    ctx.moveTo(exit.x, exit.y - 18); ctx.lineTo(exit.x, exit.y - 6);
+    ctx.moveTo(exit.x, exit.y + 6); ctx.lineTo(exit.x, exit.y + 18);
+    ctx.stroke();
+  }
+}
+
+function renderSuggestArrow() {
+  if (!ship.ai.suggestAngle && ship.ai.suggestAngle !== 0) return;
+  const a = ship.ai.suggestAngle;
+  const dx = Math.cos(a), dy = Math.sin(a);
+  const sx = ship.x + dx * ship.size * 3;
+  const sy = ship.y + dy * ship.size * 3;
+  const ex = ship.x + dx * ship.size * 6;
+  const ey = ship.y + dy * ship.size * 6;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 180, 84, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy); ctx.lineTo(ex, ey);
+  const headA = a;
+  const hx = Math.cos(headA + Math.PI * 0.8) * 6;
+  const hy = Math.sin(headA + Math.PI * 0.8) * 6;
+  const hx2 = Math.cos(headA - Math.PI * 0.8) * 6;
+  const hy2 = Math.sin(headA - Math.PI * 0.8) * 6;
+  ctx.moveTo(ex, ey); ctx.lineTo(ex + hx, ey + hy);
+  ctx.moveTo(ex, ey); ctx.lineTo(ex + hx2, ey + hy2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function renderThreatLine() {
+  const radar = ship.ai.radar;
+  if (!radar) return;
+
+  // Линия к астероиду/комете
+  if (radar.nThreat) {
+    const prox = Math.max(0, 1 - radar.nThreatD / 600);
+    if (prox >= 0.3) {
+      ctx.strokeStyle = `rgba(224, 90, 90, ${prox * 0.7})`;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(ship.x, ship.y);
+      ctx.lineTo(radar.nThreat.x, radar.nThreat.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = `rgba(224, 90, 90, ${prox * 0.8})`;
+      ctx.beginPath();
+      ctx.arc(radar.nThreat.x, radar.nThreat.y, radar.nThreat.r + 8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  // Линия к ближайшей границе, если она в зоне риска
+  if (ship.nearestWallDist < WALL_DANGER) {
+    const prox = 1 - ship.nearestWallDist / WALL_DANGER;
+    let wx = ship.x, wy = ship.y;
+    if (ship.nearestWallDist === ship.x) wx = HARD_WALL;
+    else if (ship.nearestWallDist === MAP_W - ship.x) wx = MAP_W - HARD_WALL;
+    else if (ship.nearestWallDist === ship.y) wy = HARD_WALL;
+    else if (ship.nearestWallDist === MAP_H - ship.y) wy = MAP_H - HARD_WALL;
+
+    ctx.strokeStyle = `rgba(224, 90, 90, ${prox * 0.9})`;
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([2, 5]);
+    ctx.beginPath();
+    ctx.moveTo(ship.x, ship.y);
+    ctx.lineTo(wx, wy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function renderTargetMarker(t) {
+  const dx = t.x - ship.x, dy = t.y - ship.y;
+  const d = Math.hypot(dx, dy);
+  if (d < 30) return;
+  const a = Math.atan2(dy, dx);
+  const dist = Math.min(d, 220);
+  const mx = ship.x + Math.cos(a) * dist;
+  const my = ship.y + Math.sin(a) * dist;
+  const color = t.type === 'fuel' ? '#ffb454' :
+                t.type === 'energy' ? '#ffd866' :
+                t.type === 'water' ? '#4ec9e8' :
+                t.type === 'home' ? '#5fbf7a' : '#4ec9e8';
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.arc(mx, my, 12, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(mx - 18, my); ctx.lineTo(mx - 6, my);
+  ctx.moveTo(mx + 6, my); ctx.lineTo(mx + 18, my);
+  ctx.moveTo(mx, my - 18); ctx.lineTo(mx, my - 6);
+  ctx.moveTo(mx, my + 6); ctx.lineTo(mx, my + 18);
+  ctx.stroke();
+}
+
+function renderShip() {
+  ctx.save();
+  ctx.translate(ship.x, ship.y); ctx.rotate(ship.angle);
+
+  const thrustPower = ship.autopilot
+    ? Math.abs(ship.ai.thrustCmd || 0)
+    : (keys.thrust ? 1 : 0);
+  if (thrustPower > 0.1) {
+    const g = ctx.createLinearGradient(-ship.size * 0.8, 0, -ship.size * 3, 0);
+    g.addColorStop(0, ship.inHyper ? 'rgba(160,108,213,0.9)' : 'rgba(255,180,84,0.85)');
+    g.addColorStop(1, 'rgba(255,180,84,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-ship.size * 0.7, ship.size * 0.4);
+    ctx.lineTo(-ship.size * 3, 0);
+    ctx.lineTo(-ship.size * 0.7, -ship.size * 0.4);
+    ctx.closePath(); ctx.fill();
+  }
+
+  let hullColor = '#4ec9e8';
+  if (ship.overheat) hullColor = '#e05a5a';
+  else if (ship.inHyper) hullColor = '#a06cd5';
+  else if (ship.hull < 50) hullColor = '#ffb454';
+  else if (ship.wallProximity > 0.5) hullColor = '#e05a5a';
+
+  ctx.strokeStyle = hullColor;
+  ctx.fillStyle = 'rgba(10, 20, 35, 0.9)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(ship.size, 0);
+  ctx.lineTo(-ship.size * 0.7, ship.size * 0.65);
+  ctx.lineTo(-ship.size * 0.4, 0);
+  ctx.lineTo(-ship.size * 0.7, -ship.size * 0.65);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = hullColor;
+  ctx.beginPath(); ctx.arc(ship.size * 0.15, 0, ship.size * 0.22, 0, Math.PI * 2); ctx.fill();
+
+  ctx.restore();
+
+  // Индикатор близости к границе — пунктирный круг вокруг корабля
+  if (ship.wallProximity > 0.25) {
+    const radius = 20 + ship.wallProximity * 25;
+    ctx.strokeStyle = `rgba(224, 90, 90, ${ship.wallProximity * 0.7})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.arc(ship.x, ship.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* ============================================================
+   МИНИ-КАРТА
+   ============================================================ */
+function renderMiniMap() {
+  const w = miniMapCanvas.width, h = miniMapCanvas.height;
+  miniMapCtx.clearRect(0, 0, w, h);
+  miniMapCtx.fillStyle = 'rgba(6, 10, 18, 0.9)';
+  miniMapCtx.fillRect(0, 0, w, h);
+  const sx = w / MAP_W, sy = h / MAP_H;
+
+  // Границы — предупреждающая рамка
+  miniMapCtx.strokeStyle = 'rgba(224, 90, 90, 0.7)';
+  miniMapCtx.lineWidth = 2;
+  miniMapCtx.strokeRect(0, 0, w, h);
+  miniMapCtx.strokeStyle = 'rgba(255, 180, 84, 0.35)';
+  miniMapCtx.lineWidth = 1;
+  miniMapCtx.strokeRect(WALL_MARGIN * sx, WALL_MARGIN * sy,
+                       (MAP_W - 2 * WALL_MARGIN) * sx, (MAP_H - 2 * WALL_MARGIN) * sy);
+
+  miniMapCtx.strokeStyle = 'rgba(120, 180, 220, 0.08)';
+  miniMapCtx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    miniMapCtx.beginPath();
+    miniMapCtx.moveTo(w * i / 4, 0); miniMapCtx.lineTo(w * i / 4, h);
+    miniMapCtx.moveTo(0, h * i / 4); miniMapCtx.lineTo(w, h * i / 4);
+    miniMapCtx.stroke();
+  }
+
+  for (const c of gasClouds) {
+    miniMapCtx.fillStyle = hexToRgba(c.color, 0.15 * c.density);
+    miniMapCtx.beginPath(); miniMapCtx.arc(c.x * sx, c.y * sy, c.r * sx, 0, Math.PI * 2); miniMapCtx.fill();
+  }
+
+  for (const p of planets) {
+    miniMapCtx.fillStyle = p.attract
+      ? `hsla(200, 70%, 60%, 0.7)`
+      : `hsla(30, 80%, 55%, 0.7)`;
+    miniMapCtx.beginPath();
+    miniMapCtx.arc(p.x * sx, p.y * sy, Math.max(2, p.r * sx), 0, Math.PI * 2);
+    miniMapCtx.fill();
+  }
+
+  miniMapCtx.fillStyle = 'rgba(200, 100, 100, 0.5)';
+  for (const o of obstacles) {
+    miniMapCtx.beginPath(); miniMapCtx.arc(o.x * sx, o.y * sy, 1, 0, Math.PI * 2); miniMapCtx.fill();
+  }
+  for (const r of resources) {
+    if (r.collected) continue;
+    miniMapCtx.fillStyle = r.color;
+    miniMapCtx.beginPath(); miniMapCtx.arc(r.x * sx, r.y * sy, 1.2, 0, Math.PI * 2); miniMapCtx.fill();
+  }
+  miniMapCtx.fillStyle = 'rgba(160, 200, 255, 0.8)';
+  for (const c of comets) {
+    miniMapCtx.beginPath(); miniMapCtx.arc(c.x * sx, c.y * sy, 1.4, 0, Math.PI * 2); miniMapCtx.fill();
+  }
+
+  miniMapCtx.strokeStyle = 'rgba(120, 180, 220, 0.35)';
+  miniMapCtx.lineWidth = 1;
+  miniMapCtx.strokeRect(camX * sx, camY * sy, W * sx, H * sy);
+
+  miniMapCtx.save();
+  miniMapCtx.translate(ship.x * sx, ship.y * sy);
+  miniMapCtx.rotate(ship.angle);
+  miniMapCtx.fillStyle = ship.overheat || ship.wallProximity > 0.5
+    ? '#e05a5a'
+    : (ship.inHyper ? '#a06cd5' : '#4ec9e8');
+  miniMapCtx.beginPath();
+  miniMapCtx.moveTo(5, 0); miniMapCtx.lineTo(-3, 3); miniMapCtx.lineTo(-3, -3);
+  miniMapCtx.closePath(); miniMapCtx.fill();
+  miniMapCtx.restore();
+}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+function updateHUD() {
+  const sector = String.fromCharCode(65 + Math.floor(ship.x / 2000)) + '-' + String(Math.floor(ship.y / 2000) + 1).padStart(2, '0');
+  document.getElementById('tSector').textContent = sector;
+  document.getElementById('tIntegrity').textContent = Math.round(ship.hull) + '%';
+
+  const fuelEl = document.getElementById('vFuel');
+  fuelEl.textContent = Math.round(ship.fuel);
+  fuelEl.className = 'val' + (ship.fuel < 20 ? ' bad' : ship.fuel < 40 ? ' warn' : '');
+  document.getElementById('bFuel').style.width = ship.fuel + '%';
+
+  const energyEl = document.getElementById('vEnergy');
+  energyEl.textContent = Math.round(ship.energy);
+  energyEl.className = 'val' + (ship.energy < 20 ? ' bad' : ship.energy < 40 ? ' warn' : '');
+  document.getElementById('bEnergy').style.width = ship.energy + '%';
+
+  const waterEl = document.getElementById('vWater');
+  waterEl.textContent = Math.round(ship.water);
+  waterEl.className = 'val' + (ship.water < 20 ? ' bad' : ship.water < 40 ? ' warn' : '');
+  document.getElementById('bWater').style.width = ship.water + '%';
+
+  const tempPct = Math.max(0, Math.min(1, (ship.temp - ship.tempMin) / (ship.tempMax - ship.tempMin)));
+  const tempEl = document.getElementById('vTemp');
+  tempEl.textContent = Math.round(ship.temp) + '°C';
+  tempEl.className = 'val' + (ship.temp > 90 ? ' bad' : ship.temp > 70 ? ' warn' : '');
+  const tempBar = document.getElementById('bTemp');
+  tempBar.style.width = (tempPct * 100) + '%';
+  tempBar.className = 'res-fill temp' + (ship.temp > 90 ? ' bad' : ship.temp > 70 ? ' warn' : '');
+
+  const hullEl = document.getElementById('vHull');
+  hullEl.textContent = Math.round(ship.hull) + '%';
+  hullEl.className = 'val' + (ship.hull < 30 ? ' bad' : ship.hull < 60 ? ' warn' : '');
+  document.getElementById('bHull').style.width = ship.hull + '%';
+
+  document.getElementById('vHyper').textContent = Math.round(ship.hyperCharge) + '%';
+  document.getElementById('bHyper').style.width = ship.hyperCharge + '%';
+
+  // Индикатор близости к границе
+  const wallProx = ship.wallProximity;
+  const wallEl = document.getElementById('vWall');
+  const wallBar = document.getElementById('bWall');
+  if (wallProx > 0.75) {
+    wallEl.textContent = 'КРИТИЧНО';
+    wallEl.className = 'val bad';
+  } else if (wallProx > 0.4) {
+    wallEl.textContent = 'БЛИЗКО';
+    wallEl.className = 'val warn';
+  } else if (wallProx > 0.1) {
+    wallEl.textContent = 'ВНИМАНИЕ';
+    wallEl.className = 'val';
+  } else {
+    wallEl.textContent = 'БЕЗОП.';
+    wallEl.className = 'val';
+  }
+  wallBar.style.width = (wallProx * 100) + '%';
+
+  document.getElementById('sRes').textContent = resourcesCollected;
+  document.getElementById('sCol').textContent = collisions;
+  document.getElementById('sMax').textContent = Math.round(ship.maxAchievedSpeed);
+  const eff = Math.max(0, 100 - collisions * 4 - (ship.overheat ? 10 : 0) - ship.ai.wallHitsCount * 2);
+  document.getElementById('sEff').textContent = eff + '%';
+
+  document.getElementById('sThrust').textContent = Math.round((ship.ai.thrustCmd || 0) * 100) + '%';
+  document.getElementById('sGrav').textContent = Math.round(ship.gravLoad * 100) + '%';
+  document.getElementById('sAero').textContent = Math.round(ship.aeroLoad * 100) + '%';
+  document.getElementById('sSlip').textContent = Math.round(Math.abs(ship.slip) * 180 / Math.PI) + '°';
+  document.getElementById('sWallDist').textContent = Math.round(ship.nearestWallDist) + 'u';
+  document.getElementById('sTarget').textContent = ship.ai.target
+    ? (ship.ai.target.type || 'НАВ').toUpperCase() : '—';
+  document.getElementById('sBearing').textContent =
+    String(Math.round(ship.bearing)).padStart(3, '0') + '°';
+
+  const v = Math.round(ship.speed);
+  const velValue = document.getElementById('velValue');
+  velValue.textContent = v;
+  velValue.classList.toggle('hyper', ship.inHyper);
+  const maxV = ship.inHyper ? ship.hyperSpeed : ship.maxSpeed;
+  document.getElementById('velBar').style.width = Math.min(100, v / maxV * 100) + '%';
+  document.getElementById('velBar').classList.toggle('hyper', ship.inHyper);
+  document.getElementById('velMax').textContent = maxV;
+  document.getElementById('velHeading').textContent =
+    String(Math.round(ship.bearing)).padStart(3, '0') + '°';
+
+  document.getElementById('miniCoords').textContent =
+    `X:${Math.round(ship.x)} Y:${Math.round(ship.y)}`;
+
+  const hBtn = document.getElementById('btnHyper');
+  if (ship.inHyper) { hBtn.disabled = true; hBtn.textContent = '◆ АКТИВЕН'; }
+  else if (ship.wallProximity > 0.6) { hBtn.disabled = true; hBtn.textContent = '⚠ ГРАНИЦА'; }
+  else if (ship.hyperCharge >= 100 && ship.hyperCooldown <= 0 && ship.temp <= 90) {
+    hBtn.disabled = false; hBtn.textContent = '▶ ГИПЕРДВИГАТЕЛЬ';
+  } else {
+    hBtn.disabled = true;
+    if (ship.temp > 90) hBtn.textContent = '⚠ ПЕРЕГРЕВ';
+    else if (ship.hyperCooldown > 0) hBtn.textContent = '⌛ ' + ship.hyperCooldown.toFixed(1) + 'с';
+    else hBtn.textContent = '⌛ ' + Math.round(ship.hyperCharge) + '%';
+  }
+}
+
+/* ============================================================
+   ВИЗУАЛЬНЫЙ ЭФФЕКТ ГРАНИЦ — красная подсветка краёв экрана
+   ============================================================ */
+function updateWallFx() {
+  const p = ship.wallProximity;
+  if (p < 0.05) {
+    wallFx.classList.remove('on');
+    wallFx.style.background = '';
+    return;
+  }
+  wallFx.classList.add('on');
+  // Определяем, с какой стороны ближе стена
+  const distLeft = ship.x;
+  const distRight = MAP_W - ship.x;
+  const distTop = ship.y;
+  const distBottom = MAP_H - ship.y;
+  const nearest = Math.min(distLeft, distRight, distTop, distBottom);
+  const intensity = Math.min(1, p);
+
+  let dir = 'center';
+  if (nearest === distLeft) dir = 'left';
+  else if (nearest === distRight) dir = 'right';
+  else if (nearest === distTop) dir = 'top';
+  else dir = 'bottom';
+
+  const gradients = {
+    left:   `linear-gradient(90deg, rgba(224,90,90,${intensity * 0.55}) 0%, transparent 30%)`,
+    right:  `linear-gradient(270deg, rgba(224,90,90,${intensity * 0.55}) 0%, transparent 30%)`,
+    top:    `linear-gradient(180deg, rgba(224,90,90,${intensity * 0.55}) 0%, transparent 30%)`,
+    bottom: `linear-gradient(0deg, rgba(224,90,90,${intensity * 0.55}) 0%, transparent 30%)`,
+    center: 'none',
+  };
+  wallFx.style.background = gradients[dir];
+}
+
+/* ============================================================
+   ВИЗУАЛИЗАЦИЯ НЕЙРОСЕТИ
+   ============================================================ */
+let aiInputEls = [], aiHiddenEls = [], aiOutputEls = [];
+function buildAIBrainDisplay() {
+  const iEl = document.getElementById('aiInputs');
+  const hEl = document.getElementById('aiHidden');
+  const oEl = document.getElementById('aiOutputs');
+  iEl.innerHTML = ''; hEl.innerHTML = ''; oEl.innerHTML = '';
+  aiInputEls = []; aiHiddenEls = []; aiOutputEls = [];
+
+  // 24 входа
+  for (let i = 0; i < 24; i++) {
+    const d = document.createElement('div');
+    d.className = 'ai-neuron';
+    // Последние 4 — «стеновые» нейроны, помечаем особым цветом
+    if (i >= 20) d.classList.add('wall');
+    iEl.appendChild(d); aiInputEls.push(d);
+  }
+  for (let i = 0; i < 16; i++) {
+    const d = document.createElement('div');
+    d.className = 'ai-neuron';
+    hEl.appendChild(d); aiHiddenEls.push(d);
+  }
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'ai-neuron out';
+    oEl.appendChild(d); aiOutputEls.push(d);
+  }
+}
+
+function updateAIBrainDisplay() {
+  const input = getAIInput();
+  const fwd = brain.forward(input);
+
+  for (let i = 0; i < 24; i++) {
+    const raw = input[i];
+    const norm = Math.max(0, Math.min(1, (raw + 1) / 2));
+    aiInputEls[i].style.opacity = 0.2 + norm * 0.8;
+    aiInputEls[i].classList.toggle('on', norm > 0.55);
+  }
+  for (let i = 0; i < 16; i++) {
+    const a = (fwd.h[i] + 1) / 2;
+    aiHiddenEls[i].style.opacity = 0.2 + a * 0.8;
+    aiHiddenEls[i].classList.toggle('on', a > 0.55);
+  }
+  for (let i = 0; i < 4; i++) {
+    const p = fwd.probs[i];
+    aiOutputEls[i].style.opacity = 0.2 + p * 0.8;
+    aiOutputEls[i].classList.toggle('on', p > 0.4);
+  }
+
+  document.getElementById('aiEpoch').textContent = brain.epoch;
+  document.getElementById('aiSamples').textContent = brain.samples;
+  document.getElementById('aiLoss').textContent = brain.loss.toFixed(3);
+  document.getElementById('aiReward').textContent = (ship.ai.episodeReward || 0).toFixed(2);
+  document.getElementById('aiAccuracy').textContent = Math.round(brain.accuracy() * 100) + '%';
+
+  if (!ship.autopilot) updateCopilotHint();
+  // Периодически обновляем верхний copilot (состояние стены)
+  if (ship.autopilot && ship.wallProximity > 0.5) updateCopilotHint();
+}
+
+/* ============================================================
+   СОХРАНЕНИЕ / ЭКСПОРТ / ИМПОРТ
+   ============================================================ */
+async function updateDbUI() {
+  const size = await dbEstimateSize();
+  const count = await dbCount();
+  document.getElementById('dbSize').textContent = (size / (1024*1024)).toFixed(2) + ' МБ';
+  document.getElementById('dbRecords').textContent = count;
+  document.getElementById('aiDbSize').textContent = (size / (1024*1024)).toFixed(2);
+}
+
+async function saveProgress(showToast = false) {
+  try {
+    await dbSaveMeta('brain', brain.serialize());
+    await dbSaveMeta('game', {
+      resourcesCollected, collisions, gameTime,
+      fuel: ship.fuel, energy: ship.energy, water: ship.water, hull: ship.hull,
+      x: ship.x, y: ship.y, timestamp: Date.now(),
+    });
+    document.getElementById('dbLastSave').textContent = new Date().toLocaleTimeString('ru-RU');
+    setDbStatus('СОХРАНЕНО', 'accent');
+    await updateDbUI();
+    if (showToast) toast('ПРОГРЕСС СОХРАНЁН', 'good');
+  } catch (e) { setDbStatus('ОШИБКА СОХРАНЕНИЯ', 'bad'); }
+}
+
+async function exportDB() {
+  setDbStatus('ЭКСПОРТ...', 'accent');
+  const samples = await dbGetAll();
+  const exportObj = {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    brain: brain.serialize(),
+    samples,
+    meta: { resourcesCollected, collisions, gameTime },
+  };
+  const blob = new Blob([JSON.stringify(exportObj)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `orbital_ai_${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url);
+  setDbStatus('ЭКСПОРТ ЗАВЕРШЁН', 'accent');
+  toast('БАЗА ЭКСПОРТИРОВАНА', 'good');
+}
+
+function importDB(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  setDbStatus('ИМПОРТ...', 'accent');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.brain) {
+        const ok = brain.deserialize(data.brain);
+        if (ok) await dbSaveMeta('brain', data.brain);
+        else toast('НЕСОВМЕСТИМАЯ СЕТЬ — ИГНОРИРУЮ', 'bad');
+      }
+      if (data.samples && Array.isArray(data.samples)) {
+        const tx = db.transaction([STORE], 'readwrite');
+        const store = tx.objectStore(STORE);
+        for (const s of data.samples) store.put(s);
+        await new Promise(res => { tx.oncomplete = res; tx.onerror = res; });
+      }
+      setDbStatus('ИМПОРТ ЗАВЕРШЁН', 'accent');
+      toast('БАЗА ИМПОРТИРОВАНА: ' + (data.samples?.length || 0) + ' ЗАПИСЕЙ', 'good');
+      await updateDbUI();
+    } catch (err) {
+      setDbStatus('ОШИБКА ИМПОРТА', 'bad');
+      toast('ОШИБКА ИМПОРТА', 'bad');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function clearDB() {
+  if (!confirm('Очистить базу обучения? Это удалит все накопленные данные ИИ.')) return;
+  await dbClear();
+  setDbStatus('БАЗА ОЧИЩЕНА', 'accent');
+  toast('БАЗА ОЧИЩЕНА', 'bad');
+  await updateDbUI();
+}
+
+/* ============================================================
+   ВРЕМЯ
+   ============================================================ */
+function updateClock() {
+  const totalSec = Math.floor(gameTime);
+  const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+  const s = String(totalSec % 60).padStart(2, '0');
+  document.getElementById('tGameTime').textContent = `${m}:${s}`;
+}
+
+/* ============================================================
+   ГЛАВНЫЙ ЦИКЛ
+   ============================================================ */
+function loop(t) {
+  const dt = Math.min(0.05, (t - lastT) / 1000);
+  lastT = t;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', resize);
+window.addEventListener('beforeunload', () => {
+  if (db) {
+    dbSaveMeta('brain', brain.serialize());
+    dbSaveMeta('game', {
+      resourcesCollected, collisions, gameTime,
+      fuel: ship.fuel, energy: ship.energy, water: ship.water, hull: ship.hull,
+      x: ship.x, y: ship.y,
+    });
+  }
+});
+
+init();
+</script>
+</body>
+</html>
